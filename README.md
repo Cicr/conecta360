@@ -94,8 +94,81 @@ El sistema permite a los ciudadanos **reportar incidencias, solicitar servicios 
 | 🔴 Sistemas legados sin interoperabilidad | ✅ Anti-Corruption Layer + adaptadores por institución |
 
 ---
+## 2. Resumen de la Solución a Alto Nivel
 
-## 1. Contexto del Proyecto
+### 2.1 Módulos de la Solución
+
+La plataforma Conecta360 está compuesta por cinco módulos funcionales, cada uno resuelto por uno o más componentes del sistema:
+
+| Módulo | Descripción | Componente(s) que lo resuelve |
+|--------|-------------|-------------------------------|
+| **Módulo de Atención Ciudadana** | Gestión del ciclo de vida completo de un caso: apertura, seguimiento, resolución y cierre. Número de caso único universal. | `Case Service` · `Citizen Service` · `Attachment Service` |
+| **Módulo de Gestión Institucional** | Administración de dependencias gubernamentales, categorías de servicio, SLAs, reglas de enrutamiento y asignación de funcionarios. | `Institution & SLA Service` · Back-Office Portal |
+| **Módulo Analítico** | Generación de KPIs, reportes de rendimiento institucional, tiempos de resolución y dashboards ejecutivos. | `Analytics Service` · `Reporting Service` · Read Model (CQRS) |
+| **Integración Call Center** | Canal de atención telefónica que permite a operadores humanos registrar y consultar casos en nombre del ciudadano. | `Gateway Service` · Back-Office Portal (modo operador) |
+| **Chatbot** | Atención inicial automatizada: clasificación de la solicitud, respuestas a FAQ, apertura de casos simples y escalamiento a agente humano. | `Chatbot / AI Service` · `Case Service` |
+
+---
+
+#### Interfaces de Usuario
+
+| Interfaz | Tipo | Usuarios | Descripción |
+|----------|------|----------|-------------|
+| **Portal del Ciudadano** | Web + App Móvil | Ciudadanos | Portal público para reportar incidencias, hacer seguimiento con número de caso y recibir notificaciones. Acceso vía SSO Nacional (cédula). |
+| **Portal Back-Office** | Web (interno) | Funcionarios, Supervisores, Admins | Panel institucional para gestionar casos asignados, visualizar dashboards, administrar SLAs y generar reportes. Acceso con credenciales institucionales + MFA. |
+| **Chatbot** | Web embed + WhatsApp + RRSS | Ciudadanos | Asistente conversacional con IA. Atiende consultas frecuentes y abre casos simples de forma autónoma. Si la confianza del modelo es < 80%, escala automáticamente a un agente humano (**human-in-the-loop**). |
+| **Call Center** | Integración telefónica | Operadores humanos | Canal humano. El operador recibe la llamada e ingresa el caso en el sistema a través del Portal Back-Office en modo operador. **No es un IVR automatizado** — es un agente humano asistido por el sistema. |
+
+---
+
+### 2.2 Estrategia de Escalamiento
+
+El sistema debe procesar hasta **500,000 solicitudes diarias** (~5.8 req/s promedio, con picos de hasta 10x = ~58 req/s en horas pico). La estrategia se basa en tres capas complementarias:
+
+#### Capa 1 — Escalado Horizontal de Microservicios (Kubernetes HPA)
+
+Cada microservicio se despliega como un `Deployment` de Kubernetes con **Horizontal Pod Autoscaler (HPA)**. El escalado se activa por CPU, memoria o métricas custom (Kafka consumer lag):
+
+```
+Carga normal:  Case Service → 3 réplicas
+Carga alta:    Case Service → auto-escala hasta 50 réplicas
+Carga pico:    KEDA activa réplicas adicionales basadas en lag de Kafka
+```
+
+#### Capa 2 — Desacoplamiento Asíncrono (Apache Kafka)
+
+Las operaciones de larga duración (notificaciones, sincronización con legados, analítica) se procesan de forma **asíncrona** mediante el bus de eventos Kafka. Esto evita que el `Case Service` espere confirmación de sistemas lentos antes de responder al ciudadano:
+
+```
+Ciudadano → POST /cases → Case Service (responde 202 Accepted en < 200ms)
+                              └──► Kafka: case.created
+                                       ├──► Notification Service (async)
+                                       ├──► Analytics Service (async)
+                                       └──► Legacy Sync Service (async)
+```
+
+#### Capa 3 — Caché y Read Model (Redis + CQRS)
+
+| Técnica | Componente | Qué almacena | Beneficio |
+|---------|-----------|--------------|-----------|
+| **Caché de configuración** | Redis | Categorías, SLAs, instituciones | Evita queries repetidos a PostgreSQL |
+| **Blacklist JWT** | Redis | Tokens revocados (TTL = expiración) | Validación de auth sin hit a BD |
+| **Read Model (CQRS)** | PostgreSQL Read Replica + Elasticsearch | Proyecciones de casos para dashboards | Consultas analíticas no compiten con escrituras operacionales |
+
+#### Resumen de Métricas Objetivo
+
+| Métrica | Target |
+|---------|--------|
+| Throughput | 500,000 req/día (~58 req/s en pico) |
+| Latencia P99 (API) | < 500 ms |
+| Tiempo de respuesta ciudadano (apertura de caso) | < 2 segundos |
+| Disponibilidad | 99.9% (≤ 8.7h downtime/año) |
+| RTO (failover) | < 15 minutos |
+| RPO (pérdida máxima de datos) | < 5 minutos |
+
+---
+
+## 3. Diagramas C4
 
 > Los diagramas siguen el **Modelo C4** (Context → Containers → Components), implementados en **PlantUML** y renderizados como SVG.
 >
