@@ -2,13 +2,13 @@
 
 # 🌐 Conecta360
 ### Sistema Integral de Atención Ciudadana
-**Gobierno de Costa Verde**
+**Gobierno de República Dominicana**
 
 ---
 
 ![Estado](https://img.shields.io/badge/Estado-Diseño%20Arquitectónico-blue?style=for-the-badge)
 ![Versión](https://img.shields.io/badge/Versión-1.0-green?style=for-the-badge)
-![Licencia](https://img.shields.io/badge/Licencia-Gobierno%20Costa%20Verde-orange?style=for-the-badge)
+![Licencia](https://img.shields.io/badge/Licencia-Rep%C3%BAblica%20Dominicana-orange?style=for-the-badge)
 ![PRD](https://img.shields.io/badge/PRD-Completado-success?style=for-the-badge)
 ![BMAD](https://img.shields.io/badge/BMAD%20Method-v6-purple?style=for-the-badge)
 
@@ -38,7 +38,7 @@
 
 ## 1. Contexto del Proyecto
 
-**Conecta360** es una plataforma digital unificada para el **Gobierno de Costa Verde** (10+ millones de habitantes), cuyo propósito es centralizar todos los canales de atención ciudadana:
+**Conecta360** es una plataforma digital unificada para el **Gobierno de República Dominicana** (10+ millones de habitantes), cuyo propósito es centralizar todos los canales de atención ciudadana:
 
 - 📱 App móvil
 - 🌐 Portal web
@@ -353,7 +353,7 @@ conecta360/
 
 <div align="center">
 
-**Conecta360** · Gobierno de Costa Verde · Versión 1.0 · 2026  
+**Conecta360** · Gobierno de República Dominicana · Versión 1.0 · 2026  
 *Repositorio de Diseño Arquitectónico — No contiene código de implementación*
 
 </div>

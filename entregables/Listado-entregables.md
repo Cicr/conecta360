@@ -1,7 +1,7 @@
 # 📦 Listado de Entregables — Conecta360
 
 > **Proyecto:** Sistema Integral de Atención Ciudadana "Conecta360"  
-> **País:** Costa Verde  
+> **País:** República Dominicana  
 > **Versión:** 1.0  
 > **Fecha:** 2026-05-11  
 > **Basado en:** PRD §7 — Entregables  

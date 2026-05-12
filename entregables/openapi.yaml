@@ -4,12 +4,12 @@ info:
   version: "1.0.0"
   description: |
     API RESTful del Sistema Integral de Atención Ciudadana **Conecta360**.
-    Costa Verde — Entregable §7.4
+    República Dominicana — Entregable §7.4
   contact:
     name: Equipo Técnico Conecta360
     email: arquitectura@conecta360.gob.cv
   license:
-    name: Gobierno de Costa Verde
+    name: Gobierno de República Dominicana
 servers:
   - url: https://api.conecta360.gob.cv/api/v1
     description: Producción

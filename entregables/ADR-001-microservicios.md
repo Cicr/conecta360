@@ -10,7 +10,7 @@
 
 ## 📐 Contexto de la Decisión
 
-El sistema Conecta360 debe atender más de 10 millones de ciudadanos de Costa Verde, integrar instituciones gubernamentales autónomas y soportar 500,000 solicitudes diarias con un SLA del 99.9%. Cada módulo tiene ciclos de vida, equipos y requerimientos de escalabilidad distintos, lo que descarta el monolito como patrón arquitectónico viable.
+El sistema Conecta360 debe atender más de 10 millones de ciudadanos de República Dominicana, integrar instituciones gubernamentales autónomas y soportar 500,000 solicitudes diarias con un SLA del 99.9%. Cada módulo tiene ciclos de vida, equipos y requerimientos de escalabilidad distintos, lo que descarta el monolito como patrón arquitectónico viable.
 
 Se evalúó que el aislamiento de servicios es crítico tanto para escalabilidad como para seguridad: un servicio comprometido no debe tener acceso al modelo de datos completo. El patrón event-driven complementa los microservicios al desacoplar el módulo analítico del core de gestión de casos, evitando que las cargas de reportes afecten el rendimiento operativo.
 

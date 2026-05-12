@@ -10,7 +10,7 @@
 
 ## 📐 Contexto de la Decisión
 
-El RNF de disponibilidad (99.9% SLA — máximo 8.7h de downtime/año) y el volumen de 500,000 solicitudes diarias con picos de 10x hacen inviables las alternativas serverless y de VMs tradicionales sin orquestación. La opción multi-cloud queda descartada por regulación de soberanía de datos: los datos ciudadanos deben permanecer dentro del territorio de Costa Verde.
+El RNF de disponibilidad (99.9% SLA — máximo 8.7h de downtime/año) y el volumen de 500,000 solicitudes diarias con picos de 10x hacen inviables las alternativas serverless y de VMs tradicionales sin orquestación. La opción multi-cloud queda descartada por regulación de soberanía de datos: los datos ciudadanos deben permanecer dentro del territorio de República Dominicana.
 
 Kubernetes fue seleccionado sobre Serverless por: (1) ausencia de cold starts en 10+ microservicios siempre activos; (2) control total sobre la red (NetworkPolicy, mTLS); (3) portabilidad entre datacenters del gobierno sin vendor lock-in. La distribución RKE2 de Rancher está orientada a entornos regulados de gobierno y cuenta con certificación FIPS 140-2.
 
@@ -18,7 +18,7 @@ Kubernetes fue seleccionado sobre Serverless por: (1) ausencia de cold starts en
 
 ## 1. Contexto y Problema
 
-El sistema debe garantizar 99.9% de disponibilidad (≤ 8.7h de downtime/año), soportar 500,000 solicitudes diarias con picos de 10x, permitir despliegues independientes de 10+ microservicios y garantizar la soberanía de los datos ciudadanos dentro del territorio de Costa Verde.
+El sistema debe garantizar 99.9% de disponibilidad (≤ 8.7h de downtime/año), soportar 500,000 solicitudes diarias con picos de 10x, permitir despliegues independientes de 10+ microservicios y garantizar la soberanía de los datos ciudadanos dentro del territorio de República Dominicana.
 
 ## 2. Decisión
 
@@ -38,7 +38,7 @@ El sistema debe garantizar 99.9% de disponibilidad (≤ 8.7h de downtime/año), 
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Costa Verde                          │
+│                    República Dominicana                          │
 │                                                         │
 │  ┌─────────────────────┐    ┌─────────────────────────┐ │
 │  │   Región NORTE      │    │   Región SUR (DR)        │ │
