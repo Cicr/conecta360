@@ -36,6 +36,40 @@
 
 ---
 
+## 0. Notas del Arquitecto
+
+ Tal como indica el punto 8, el projecto refleja como atacaria este proyecto.  tome un approach AI assisted, utilizado el manejo de agente usando aspectos de BMAD Method v6  y La generacion de Artefactos.  En un entorno real con interaccion humana, las conversaciones par los ADRs y otros documentos estaria reflejada. 
+
+ En mi experiencia con problemas similares, trabaje el proyecto Taina, el cual justamente busca unificar los canales de atencion.  en el caso de Taina mendiante una solucion de AI voz y texto que Identifique la necesidad de servicio y proceda a informar y/o tomar accion en el proceso necesario para el ciudadano.
+
+ El stack que utilizamos en Taina fue Python, Livekit, ChromaDB.  Se realizo una arquitetura dockerizada, implementada en primera fase en VMs con  deploy de load banlancer, y pensando en furuto cluster de kubernetes.
+
+ Yo trabaje el deploy del load balancer y apoye en el ciclo de pruebas UAT.
+
+ Para este ejercio conecta 360, el stack elegido fue Posgres,Kafka, Redis, OpenTelemetry,Kubernetes,OAuth2 / OpenID Connect
+
+ La justicacion esta dada por el rendimiento(performance) que brindan las herramientas. 
+
+ En la practica, sistemas de instancias, es decir micro servicios deployandos en vm estan visualizados para consumir los recursos asignados.  hacer el deploy como malla de servicios en kubernetes es el estandar de escalabidad y gestion de recursos, vista la cantidad de usuarios esperados.
+
+  El esquema propuesto es el de Microservicios 
+
+  Citizen Service
+  SLA Service
+  Institution Service
+  Case Service
+  Notification Service
+  Reporting Service
+  Auth Service 
+  Gateway Service 
+  Attachment Service
+
+La recomendacion de utilizar golang para la mayoria de los servicios se debe a su rendimiento. 
+La justifcacion del stack en la escalabidad.  Un Proof of Concept o MVP para el caso de uso de 360 puede ser implementado sin manejo de eventos u orquestacion, pero al escalar el volumen y necesidad de SLA, las estrategias de optimizacion de flujo recaen en manejo asincronico de eventos y separacion de responsabilidades.
+
+
+
+
 ## 1. Contexto del Proyecto
 
 **Conecta360** es una plataforma digital unificada para el **Gobierno de República Dominicana** (10+ millones de habitantes), cuyo propósito es centralizar todos los canales de atención ciudadana:

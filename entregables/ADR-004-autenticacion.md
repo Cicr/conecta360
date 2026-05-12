@@ -132,6 +132,9 @@ Ciudadano                Web Portal           Auth Service         SSO Nacional
 | JWT expiración | Access token: 1h, Refresh token: 24h |
 | Secure + HttpOnly + SameSite | Atributos de cookie para JWT |
 | Rate limiting auth | Máx. 5 intentos fallidos → bloqueo temporal 15min |
+| Gestión de secretos y claves | A definir según recursos del proyecto — opciones: Kubernetes Secrets (cifrado en etcd), servicios cloud nativos u otros |
+
+> **Nota del Arquitecto:** HashiCorp Vault fue evaluado como opción de gestión de secretos. La selección final de herramienta se delega al proyecto según sus restricciones operacionales y presupuestarias.
 
 ---
 

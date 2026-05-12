@@ -22,17 +22,20 @@ El sistema debe garantizar 99.9% de disponibilidad (≤ 8.7h de downtime/año), 
 
 ## 2. Decisión
 
-**Se adopta Kubernetes en configuración multi-región activo-pasivo con IaC (Terraform):**
+**Se adopta Docker + Kubernetes como plataforma de orquestación en configuración multi-región activo-pasivo:**
 
 | Componente | Tecnología | Justificación |
 |-----------|-----------|---------------|
-| Orquestación de contenedores | Kubernetes 1.29+ | Estándar de la industria, portabilidad entre nubes |
-| Distribución Kubernetes | RKE2 (Rancher) | Orientado a gobierno y sectores regulados |
-| IaC | Terraform + Terragrunt | Infraestructura versionada y reproducible |
-| Registry de contenedores | Harbor (self-hosted) | Control total sobre imágenes, scanning de vulnerabilidades |
-| CI/CD | GitLab CI + ArgoCD | GitOps: el repositorio es la fuente de verdad |
+| Contenedorización | Docker | Estándar de empaquetado de microservicios |
+| Orquestación | Kubernetes 1.29+ | Estándar de la industria, portabilidad entre plataformas |
+| Distribución K8s | **Dependiente del proyecto** | On-prem (RKE2/k3s), nube gestionada (EKS/GKE/AKS) o hibrido |
+| Proveedor Cloud | **Dependiente del proyecto** | La selección de cloud o datacenter on-prem es decisión del proyecto |
+| IaC | **No aplica en esta fase** | No se usará IaC más allá de manifiestos Kubernetes (YAML/Helm) y Dockerfiles |
+| CI/CD | GitLab CI + ArgoCD (recomendado) | GitOps: el repositorio es la fuente de verdad |
 | Observabilidad | OpenTelemetry + Prometheus + Grafana + Loki + Jaeger | Stack open-source sin vendor lock-in |
 | Backup y DR | Velero (K8s backup) + pg_basebackup | Backup automatizado de estados y BD |
+
+> **Nota del Arquitecto:** IaC con Terraform/Terragrunt fue evaluado pero se descarta en esta fase. La infraestructura se gestiona únicamente con manifiestos Kubernetes declarativos (YAML/Helm charts). Si en fases futuras se requiere IaC completo, la herramienta se seleccionará según el proveedor de nube elegido por el proyecto.
 
 ## 3. Arquitectura Multi-región
 
@@ -122,24 +125,24 @@ spec:
 |---------|---------------|
 | **Network Policies** | K8s NetworkPolicy: solo comunicación autorizada entre pods |
 | **Pod Security Standards** | Todos los pods en modo `restricted` |
-| **Image scanning** | Harbor + Trivy: bloquear imágenes con CVE críticos |
-| **Secrets management** | External Secrets Operator + HashiCorp Vault |
-| **mTLS entre servicios** | Istio Service Mesh o Linkerd |
+| **Image scanning** | Trivy o equivalente: bloquear imágenes con CVE críticos |
+| **Secrets management** | A definir según proyecto: Kubernetes Secrets cifrados en etcd o servicio cloud nativo |
+| **mTLS entre servicios** | Istio Service Mesh o Linkerd (recomendado) |
 | **Auditoría K8s** | kube-audit habilitado, logs centralizados |
 | **RBAC K8s** | Principio de mínimo privilegio en todos los ServiceAccounts |
 
 ## 8. Consecuencias
 
 ### Positivas
-- Infraestructura reproducible al 100% con Terraform
+- Infraestructura portable: manifiestos Kubernetes reproducibles en cualquier distribución
 - Rollback automático ante fallos de despliegue (ArgoCD)
 - Escalado automático según carga real (HPA + KEDA para Kafka lag)
 - Stack de observabilidad completo desde el día 1
-- Sin vendor lock-in: migración entre clouds posible
+- Sin vendor lock-in: la selección de cloud/distribución K8s queda abierta al proyecto
 
 ### Negativas / Riesgos asumidos
-- Curva de aprendizaje de Kubernetes para el equipo → **Mitigación:** RKE2 simplifica gestión; plan de capacitación 4 semanas
-- Costo inicial de infraestructura en dos regiones → **Mitigación:** Región secundaria con capacidad reducida (activo-pasivo vs activo-activo)
+- Sin IaC formal, el aprovisionamiento inicial de infraestructura es manual o parcialmente automatizado → **Mitigación:** scripts de bootstrapping documentados para cada entorno
+- Costo inicial de infraestructura en dos regiones → **Mitigación:** Región secundaria con capacidad reducida (activo-pasivo)
 - Complejidad de Istio para mTLS → **Mitigación:** Iniciar con Linkerd (más simple) y migrar si es necesario
 
 ---

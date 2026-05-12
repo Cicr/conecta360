@@ -28,6 +28,8 @@ El sistema debe almacenar datos de múltiples instituciones gubernamentales con 
 - **Particionamiento por rango de fecha** para tablas de alto volumen (CaseEvent, AuditLog, Notification)
 - **Réplica de lectura** para CQRS (Read Model)
 - **Cifrado de columnas** con pgcrypto para campos PII
+- **Object Storage:** no seleccionado — la elección (autoalojado o nube) es dependiente de los recursos del proyecto
+- **Gestión de secretos:** no seleccionada — la estrategia es dependiente del manejo del proyecto
 
 ## 3. Alternativas Evaluadas
 
@@ -73,10 +75,12 @@ CREATE TABLE case_events_2026_05
 
 | Campo | Entidad | Método | Gestión de clave |
 |-------|---------|--------|-----------------|
-| `national_id` | Citizen | AES-256-GCM (pgcrypto) | HashiCorp Vault |
-| `email` | Citizen | AES-256-GCM | HashiCorp Vault |
-| `phone_number` | Citizen | AES-256-GCM | HashiCorp Vault |
+| `national_id` | Citizen | AES-256-GCM (pgcrypto) | A definir según proyecto |
+| `email` | Citizen | AES-256-GCM | A definir según proyecto |
+| `phone_number` | Citizen | AES-256-GCM | A definir según proyecto |
 | `password_hash` | User | bcrypt (factor 12) | N/A (hash unidireccional) |
+
+> **Nota del Arquitecto:** La herramienta de gestión de secretos (HashiCorp Vault, AWS Secrets Manager, Kubernetes Secrets cifrados u otra) se determinará según los recursos y restricciones operacionales del proyecto.
 
 ## 7. Consecuencias
 

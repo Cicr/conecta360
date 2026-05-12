@@ -4,7 +4,7 @@
 skinparam backgroundColor #FAFAFA
 LAYOUT_WITH_LEGEND()
 
-title <b>Conecta360 — Diagrama C4 Nivel 2: Contenedores</b>\n<size:11>Versión 1.0 | 2026-05-11 | Arquitecto de Software: Ariel Montero</size>
+title <b>Conecta360 — Diagrama C4 Nivel 2: Contenedores</b>\n<size:11>Versión 1.0 | 2026-05-11</size>
 
 ' ============================================================
 ' ACTORES
@@ -66,9 +66,9 @@ System_Boundary(conecta360, "Conecta360") {
 
     ContainerDb(cache, "Caché Distribuido", "Redis 7\nCluster Mode", "Caché de sesiones JWT, configuraciones,\ncategorías y SLAs. TTL configurable.\nEvitar cold-start en picos.")
 
-    ContainerDb(object_storage, "Object Storage", "MinIO / AWS S3\nor GCS", "Almacenamiento de adjuntos (imágenes,\ndocumentos). Cifrado AES-256 server-side.\nPresigned URLs para descarga segura.")
+    ContainerDb(object_storage, "Object Storage", "A definir por proyecto\n(autoalojado o nube)", "Almacenamiento de adjuntos (imágenes,\ndocumentos). Cifrado AES-256 server-side.\nPresigned URLs para descarga segura.")
 
-    ContainerDb(secrets_vault, "Secrets Vault", "HashiCorp Vault\nor AWS Secrets Manager", "Gestión centralizada de secretos:\nAPI keys, certificados, claves de cifrado.\nRotación automática de credenciales.")
+    ContainerDb(secrets_vault, "Secrets Management", "A definir por proyecto\n(K8s Secrets / servicio cloud)", "Gestión centralizada de secretos:\nAPI keys, certificados, claves de cifrado.\nSelección dependiente del proyecto.")
 
 }
 
