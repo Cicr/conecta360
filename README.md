@@ -10,6 +10,7 @@
 ![Versión](https://img.shields.io/badge/Versión-1.0-green?style=for-the-badge)
 ![Licencia](https://img.shields.io/badge/Licencia-Gobierno%20Costa%20Verde-orange?style=for-the-badge)
 ![PRD](https://img.shields.io/badge/PRD-Completado-success?style=for-the-badge)
+![BMAD](https://img.shields.io/badge/BMAD%20Method-v6-purple?style=for-the-badge)
 
 > **Repositorio de diseño arquitectónico** — Este repositorio es una **Wiki de Arquitectura**.  
 > No contiene código de implementación. Contiene análisis, diagramas, decisiones de diseño y especificaciones de API.
