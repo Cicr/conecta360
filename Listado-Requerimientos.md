@@ -7,31 +7,14 @@
 
 ---
 
-## 🎭 Sesión de Análisis — Conversación del Equipo
+## 📐 Metodología de Análisis
 
-> Esta tabla fue construida mediante una sesión colaborativa de análisis entre los siguientes roles:
->
-> - **🏛️ Ariel Montero** — Arquitecto de Software
-> - **📊 Beatriz Salcedo** — Analista de Sistemas / Business Analyst
-> - **🔒 Carlos Fuentes** — Experto en Seguridad
+Cada requerimiento fue analizado bajo cuatro criterios transversales, aplicados desde las perspectivas de arquitectura de software, análisis de negocio y seguridad:
 
----
-
-### Extracto de la sesión de análisis
-
-**Beatriz (BA):** Empecemos por mapear los módulos del PRD. El punto 4 nos da cuatro módulos: Atención Ciudadana, Gestión Institucional, Analítico e Integraciones. Voy a catalogarlos uno a uno.
-
-**Ariel (Arq):** Estoy de acuerdo. Pero mientras los enumeramos, necesito que marquemos cuáles implican estado persistente, cuáles son en tiempo real y cuáles pueden ser eventualmente consistentes. Eso impacta la arquitectura.
-
-**Carlos (Seg):** Y yo necesito saber qué requerimientos tocan datos de ciudadanos o datos de auditoría. Ahí aplican controles de acceso, cifrado y trazabilidad obligatorios.
-
-**Beatriz:** Perfecto. Acordemos tres criterios de análisis: *Complejidad técnica*, *Sensibilidad de datos* y *Criticidad de negocio*.
-
-**Ariel:** Añadiría un cuarto: *Dependencias externas*, porque el SSO, WhatsApp y redes sociales son integraciones que no controlamos.
-
-**Carlos:** Absolutamente. Un ciudadano que envía su número de identidad por WhatsApp está exponiendo datos PII. Necesitamos que eso quede marcado en la tabla.
-
-**Beatriz:** Entonces la tabla tiene: ID, Módulo, Requerimiento, Tipo (Funcional/No Funcional), Complejidad, Sensibilidad de datos, Criticidad de negocio, Observaciones de seguridad y Estado de análisis.
+- **Complejidad técnica** — Nivel de esfuerzo de diseño e implementación
+- **Sensibilidad de datos** — Si el requerimiento maneja datos PII u otra información protegida
+- **Criticidad de negocio** — Impacto en la operación del sistema si el requerimiento no se cumple
+- **Dependencias externas** — Si depende de sistemas o APIs fuera del control del proyecto
 
 ---
 
@@ -70,15 +53,15 @@
 
 ---
 
-## 📝 Acuerdos del Equipo
+## 📝 Criterios de Gestión
 
-| # | Acuerdo | Responsable | Fecha |
-|---|---------|-------------|-------|
-| 1 | Todos los requerimientos que toquen datos PII se marcan como "Sensibilidad Alta" y requieren revisión de seguridad antes de diseño técnico | Carlos (Seg) | 2026-05-11 |
-| 2 | Los requerimientos RF-12 (SSO) y RF-15 (APIs internas) son los de mayor riesgo arquitectónico y se abordan primero en el backlog técnico | Ariel (Arq) | 2026-05-11 |
-| 3 | El BA será responsable de mantener este documento actualizado conforme avance el proyecto | Beatriz (BA) | 2026-05-11 |
-| 4 | Cualquier cambio de requerimiento debe pasar por un proceso de Change Request documentado | Equipo | 2026-05-11 |
+| # | Criterio | Fecha |
+|---|---------|-------|
+| 1 | Todos los requerimientos que toquen datos PII se marcan como "Sensibilidad Alta" y requieren revisión de seguridad antes de diseño técnico | 2026-05-11 |
+| 2 | Los requerimientos RF-12 (SSO) y RF-15 (APIs internas) son los de mayor riesgo arquitectónico y se abordan primero en el backlog técnico | 2026-05-11 |
+| 3 | Este documento debe mantenerse actualizado conforme avance el proyecto | 2026-05-11 |
+| 4 | Cualquier cambio de requerimiento debe pasar por un proceso de Change Request documentado | 2026-05-11 |
 
 ---
 
-*Documento generado por sesión colaborativa del equipo técnico — Conecta360 v1.0*
+*Conecta360 v1.0 — Documento de análisis de requerimientos*

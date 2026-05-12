@@ -60,21 +60,7 @@ El sistema permite a los ciudadanos **reportar incidencias, solicitar servicios 
 
 ---
 
-## 2. Equipo de Diseño
-
-> Este repositorio fue construido mediante sesiones colaborativas de análisis entre 5 especialistas:
-
-| Persona | Rol | Área Principal |
-|---------|-----|---------------|
-| 🏛️ **Ariel Montero** | Arquitecto de Software | Diagramas C4, ADR-001, ADR-003, ADR-005, ADR-006 |
-| 📊 **Beatriz Salcedo** | Business Analyst | Requerimientos, OpenAPI, AsyncAPI |
-| 🔒 **Carlos Fuentes** | Experto en Seguridad | ADR-004, revisión de todos los ADRs, Matriz de Riesgo |
-| 🗄️ **Diana Rivas** | Arquitecta de Datos | Diccionario de Datos, ER, ADR-002 |
-| 📅 **Eduardo Lara** | Project Manager | Matriz de Riesgo, Entregables, Coordinación |
-
----
-
-## 3. 🏛️ Arquitectura del Sistema (C4)
+## 1. Contexto del Proyecto
 
 > Los diagramas siguen el **Modelo C4** (Context → Containers → Components), implementados en **PlantUML** y renderizados como SVG.
 >
@@ -219,12 +205,12 @@ El sistema permite a los ciudadanos **reportar incidencias, solicitar servicios 
 
 | ADR | Decisión | Estado | Responsable |
 |-----|---------|--------|------------|
-| [ADR-001](./entregables/ADR-001-microservicios.md) | Arquitectura de Microservicios + Event-Driven | ✅ Aprobado | Ariel Montero |
-| [ADR-002](./entregables/ADR-002-base-de-datos.md) | PostgreSQL 16 con Row-Level Security (Multi-tenant) | ✅ Aprobado | Diana Rivas |
-| [ADR-003](./entregables/ADR-003-mensajeria.md) | Apache Kafka + Schema Registry | ✅ Aprobado | Ariel Montero |
-| [ADR-004](./entregables/ADR-004-autenticacion.md) | OAuth2/OIDC + RBAC + ABAC | ✅ Aprobado | Carlos Fuentes |
-| [ADR-005](./entregables/ADR-005-infraestructura.md) | Kubernetes Multi-región + Terraform IaC | ✅ Aprobado | Ariel Montero |
-| [ADR-006](./entregables/ADR-006-api-gateway.md) | Kong OSS como API Gateway | ✅ Aprobado | Ariel Montero |
+| [ADR-001](./entregables/ADR-001-microservicios.md) | Arquitectura de Microservicios + Event-Driven | ✅ Aprobado | Arquitectura |
+| [ADR-002](./entregables/ADR-002-base-de-datos.md) | PostgreSQL 16 con Row-Level Security (Multi-tenant) | ✅ Aprobado | Datos |
+| [ADR-003](./entregables/ADR-003-mensajeria.md) | Apache Kafka + Schema Registry | ✅ Aprobado | Arquitectura |
+| [ADR-004](./entregables/ADR-004-autenticacion.md) | OAuth2/OIDC + RBAC + ABAC | ✅ Aprobado | Seguridad |
+| [ADR-005](./entregables/ADR-005-infraestructura.md) | Kubernetes Multi-región + Terraform IaC | ✅ Aprobado | Arquitectura |
+| [ADR-006](./entregables/ADR-006-api-gateway.md) | Kong OSS como API Gateway | ✅ Aprobado | Arquitectura |
 
 ### Stack Tecnológico Seleccionado
 

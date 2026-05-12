@@ -4,24 +4,15 @@
 > **ID:** ADR-002  
 > **Estado:** Aprobado ✅  
 > **Fecha:** 2026-05-11  
-> **Decisión tomada por:** Diana Rivas (Arquitecta de Datos)  
-> **Revisado por:** Ariel Montero (Arq), Carlos Fuentes (Seg), Eduardo Lara (PM)  
+> **Área:** Arquitectura de Datos  
 
 ---
 
-## 🎭 Contexto de la Decisión
+## 📐 Contexto de la Decisión
 
-**Diana (AD):** El PRD dice "multitenencia con aislamiento lógico de datos". Tenemos dos modelos clásicos: schema-per-tenant o Row-Level Security (RLS). También podría ser database-per-tenant, pero con 50 instituciones eso es operacionalmente insostenible.
+El PRD establece como requerimiento no funcional la **multitenencia con aislamiento lógico de datos** (RNF-05). Los modelos clásicos de multitenencia fueron evaluados: schema-per-tenant, database-per-tenant y Row-Level Security (RLS) en schema único.
 
-**Ariel (Arq):** ¿Y el enfoque NoSQL? Pensé en MongoDB para la flexibilidad de los datos de casos.
-
-**Diana (AD):** Los casos tienen relaciones muy claras: ciudadano → caso → eventos → notificaciones. Si perdemos ACID, perdemos consistencia en el flujo de atención. No lo recomiendo.
-
-**Carlos (Seg):** El RLS de PostgreSQL es la opción de seguridad más sólida. El aislamiento se aplica a nivel de motor, no solo de aplicación. Si hay un bug en el código, el motor aún protege los datos.
-
-**Eduardo (PM):** ¿Eso afecta rendimiento? ¿50 instituciones y 10 millones de casos no van a matar la base de datos?
-
-**Diana (AD):** Con índices correctos en `institution_id` y estrategia de particionamiento por fecha en tablas grandes como `CaseEvent` y `AuditLog`, es perfectamente manejable. PostgreSQL escala muy bien.
+Las entidades del dominio presentan relaciones relacionales claras (ciudadano → caso → eventos → notificaciones) con requerimiento de consistencia ACID, lo que descarta motores NoSQL. El RLS de PostgreSQL aplica el aislamiento a nivel de motor de base de datos, lo que provee defensa en profundidad más allá de los controles de la capa de aplicación. Con particionamiento correcto sobre `institution_id` y rangos de fecha en tablas de alto volumen, el modelo es operacionalmente viable para 50 instituciones y 10+ millones de casos.
 
 ---
 
@@ -113,4 +104,4 @@ CREATE TABLE case_events_2026_05
 
 ---
 
-*ADR-002 aprobado por el equipo técnico de Conecta360*
+*Conecta360 v1.0 — ADR-002*

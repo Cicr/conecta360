@@ -4,24 +4,15 @@
 > **ID:** ADR-006  
 > **Estado:** Aprobado ✅  
 > **Fecha:** 2026-05-11  
-> **Decisión tomada por:** Ariel Montero (Arquitecto de Software)  
-> **Revisado por:** Carlos Fuentes (Seg), Eduardo Lara (PM)  
+> **Área:** Arquitectura de Software / Seguridad  
 
 ---
 
-## 🎭 Contexto de la Decisión
+## 📐 Contexto de la Decisión
 
-**Ariel (Arq):** Necesitamos un API Gateway que sea el punto de entrada único para los 10 microservicios. Las funciones mínimas son: routing, autenticación JWT, rate limiting y terminación TLS.
+Con 10+ microservicios, centralizar autenticación, logging, rate limiting y routing en cada servicio de forma independiente genera deuda técnica e inconsistencias de seguridad. Se requiere un API Gateway como punto de entrada único.
 
-**Carlos (Seg):** Y WAF. No quiero que OWASP Top 10 llegue a los microservicios. El gateway debe ser la primera línea de defensa. También necesito que el rate limiting sea por ciudadano, no solo por IP.
-
-**Eduardo (PM):** ¿Kong, NGINX o un gateway cloud?
-
-**Ariel (Arq):** Kong tiene el mejor ecosistema de plugins para lo que necesitamos: JWT, OAuth2, rate limiting, CORS, logging. Y corre en Kubernetes nativamente con el operador oficial. NGINX haría lo básico pero necesitaríamos codificar mucho.
-
-**Carlos (Seg):** ¿Kong tiene plugins de seguridad certificados? Necesito algo que pueda auditar, no un plugin de comunidad que nadie mantiene.
-
-**Ariel (Arq):** Los plugins que necesitamos (JWT, OAuth2, rate-limiting, IP restriction) son todos plugins oficiales de Kong, mantenidos por la empresa. Puedo presentar el análisis de cada uno.
+Los requerimientos de seguridad estrictos exigen que el gateway sea la primera línea de defensa (OWASP Top 10), con rate limiting por identidad de usuario —no solo por IP—, y que los plugins de seguridad utilizados sean mantenidos oficialmente. Kong OSS satisface estos criterios con un ecosistema de plugins oficiales para JWT, OAuth2, rate limiting, CORS y logging, todos con soporte activo. Adicionalmente, corre nativamente en Kubernetes mediante su operador oficial, lo que permite configuración declarativa versionada como código.
 
 ---
 
@@ -139,4 +130,4 @@ plugins:
 
 ---
 
-*ADR-006 aprobado por el equipo técnico de Conecta360*
+*Conecta360 v1.0 — ADR-006*

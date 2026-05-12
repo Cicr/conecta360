@@ -4,24 +4,15 @@
 > **ID:** ADR-003  
 > **Estado:** Aprobado ✅  
 > **Fecha:** 2026-05-11  
-> **Decisión tomada por:** Ariel Montero (Arquitecto de Software)  
-> **Revisado por:** Diana Rivas (Datos), Carlos Fuentes (Seg), Eduardo Lara (PM)  
+> **Área:** Arquitectura de Software / Integraciones  
 
 ---
 
-## 🎭 Contexto de la Decisión
+## 📐 Contexto de la Decisión
 
-**Ariel (Arq):** El PRD dice explícitamente "Kafka o RabbitMQ". Necesitamos tomar una decisión.
+El PRD menciona explícitamente "Kafka o RabbitMQ" como opción de mensajería asincrónica. El sistema requiere desacoplar productores y consumidores para los flujos de creación de casos, notificaciones, sincronización con sistemas legados y alimentación del módulo analítico.
 
-**Diana (AD):** Desde datos, Kafka tiene una ventaja enorme: retention de eventos. Puedo reconstruir el estado del sistema completo si necesito rehacer proyecciones analíticas. Con RabbitMQ los mensajes desaparecen una vez consumidos.
-
-**Carlos (Seg):** ¿Kafka tiene ACLs para controlar quién puede publicar y consumir en cada topic? Eso es crítico para que el Chatbot Service no pueda escuchar eventos de auditoría.
-
-**Ariel (Arq):** Sí. Kafka tiene ACLs granulares por topic. Podemos garantizar que cada servicio solo accede a los topics que le corresponden.
-
-**Eduardo (PM):** ¿Y el costo operacional? ¿El equipo tiene experiencia con Kafka?
-
-**Ariel (Arq):** Kafka es más complejo, pero el volumen justifica la elección. Con 500k solicitudes diarias, RabbitMQ puede convertirse en un cuello de botella en picos. Kafka está diseñado para ese volumen.
+La decisión consideró dos factores clave: (1) el **volumen** esperado de 500,000 solicitudes diarias con picos de 10x hace a Kafka significativamente superior en throughput; (2) la **retención de eventos** de Kafka permite reconstruir proyecciones analíticas y aplicar replay ante fallos, algo imposible con RabbitMQ en su configuración estándar. Los ACLs granulares por tópic garantizan aislamiento entre servicios (ninguna restricción de acceso dependiente solo de la capa de aplicación).
 
 ---
 
@@ -141,4 +132,4 @@ enable.idempotence=true
 
 ---
 
-*ADR-003 aprobado por el equipo técnico de Conecta360*
+*Conecta360 v1.0 — ADR-003*

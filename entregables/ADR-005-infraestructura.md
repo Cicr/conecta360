@@ -4,24 +4,15 @@
 > **ID:** ADR-005  
 > **Estado:** Aprobado ✅  
 > **Fecha:** 2026-05-11  
-> **Decisión tomada por:** Ariel Montero (Arquitecto de Software)  
-> **Revisado por:** Carlos Fuentes (Seg), Eduardo Lara (PM), Diana Rivas (Datos)  
+> **Área:** Arquitectura de Infraestructura  
 
 ---
 
-## 🎭 Contexto de la Decisión
+## 📐 Contexto de la Decisión
 
-**Eduardo (PM):** El PRD dice 99.9% SLA. Eso son máximo 8.7 horas de downtime al año. ¿Cómo lo garantizamos?
+El RNF de disponibilidad (99.9% SLA — máximo 8.7h de downtime/año) y el volumen de 500,000 solicitudes diarias con picos de 10x hacen inviables las alternativas serverless y de VMs tradicionales sin orquestación. La opción multi-cloud queda descartada por regulación de soberanía de datos: los datos ciudadanos deben permanecer dentro del territorio de Costa Verde.
 
-**Ariel (Arq):** Con arquitectura multi-región. Una región principal y una secundaria con failover automático. El tiempo de failover debe ser < 15 minutos para cumplir el RTO.
-
-**Carlos (Seg):** Multi-región también tiene implicaciones de seguridad: los datos deben replicarse cifrados, y necesitamos decidir si ambas regiones están en el mismo país (por regulación de datos soberanos).
-
-**Diana (AD):** Para Costa Verde, recomendaría que ambos centros de datos estén en el país. Los datos ciudadanos no deben salir de la jurisdicción nacional. Eso limita la elección de nube.
-
-**Eduardo (PM):** ¿Kubernetes o serverless? ¿El equipo puede operar Kubernetes?
-
-**Ariel (Arq):** Con los 10 microservicios que tenemos, Kubernetes nos da portabilidad entre nubes y control total. Serverless tendría cold starts y costos impredecibles a 500k solicitudes diarias. Usaremos Kubernetes con operadores para gestionar Kafka y PostgreSQL.
+Kubernetes fue seleccionado sobre Serverless por: (1) ausencia de cold starts en 10+ microservicios siempre activos; (2) control total sobre la red (NetworkPolicy, mTLS); (3) portabilidad entre datacenters del gobierno sin vendor lock-in. La distribución RKE2 de Rancher está orientada a entornos regulados de gobierno y cuenta con certificación FIPS 140-2.
 
 ---
 
@@ -153,4 +144,4 @@ spec:
 
 ---
 
-*ADR-005 aprobado por el equipo técnico de Conecta360*
+*Conecta360 v1.0 — ADR-005*

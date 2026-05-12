@@ -4,26 +4,15 @@
 > **ID:** ADR-004  
 > **Estado:** Aprobado ✅  
 > **Fecha:** 2026-05-11  
-> **Decisión tomada por:** Carlos Fuentes (Experto en Seguridad)  
-> **Revisado por:** Ariel Montero (Arq), Diana Rivas (Datos), Eduardo Lara (PM), Beatriz Salcedo (BA)  
+> **Área:** Seguridad / IAM  
 
 ---
 
-## 🎭 Contexto de la Decisión
+## 📐 Contexto de la Decisión
 
-**Carlos (Seg):** Este es el ADR más crítico para mí. El sistema tiene tres tipos de identidades radicalmente diferentes: ciudadanos que se autentican con su documento de identidad nacional, funcionarios que usan credenciales institucionales y el sistema mismo que necesita M2M (machine-to-machine). No podemos mezclarlos.
+El sistema gestiona tres tipos de identidades radicalmente diferentes que no pueden compartir el mismo mecanismo de autenticación: (1) **ciudadanos**, que se identifican con el SSO Nacional (documento de identidad nacional vía OIDC) y no deben tener contraseñas locales en Conecta360; (2) **funcionarios**, que usan credenciales institucionales o LDAP; (3) **servicios** (M2M), que requieren Client Credentials flow.
 
-**Ariel (Arq):** El PRD dice explícitamente OAuth2 / OpenID Connect. ¿Y para autorización?
-
-**Carlos (Seg):** RBAC solo no es suficiente. Un agente de Salud en el Departamento Norte no debería poder ver casos del Departamento Sur. Eso requiere atributos — ABAC. La combinación RBAC + ABAC es la industria estándar para sistemas de gobierno.
-
-**Beatriz (BA):** ¿Cómo impacta esto al ciudadano? ¿Tiene que crear una cuenta adicional?
-
-**Carlos (Seg):** No. El ciudadano se autentica exclusivamente con el SSO Nacional (su cédula). Conecta360 solo valida el token emitido por ese SSO. Nunca almacenamos contraseñas de ciudadanos.
-
-**Diana (AD):** Desde datos, ¿cómo propagamos el tenant (institución) en cada request para el RLS?
-
-**Carlos (Seg):** El Auth Service emite un JWT interno que incluye los claims de tenant_id, institution_id y roles. Ese JWT es validado por cada microservicio.
+Para autorización, RBAC solo no es suficiente: un agente del Departamento Norte no debe ver casos del Departamento Sur aunque tengan el mismo rol. Se requieren atributos contextuales (ABAC). El modelo de triple defensa —API Gateway, microservicio, RLS en BD— garantiza que ningún error en una capa comprometa el aislamiento total. El JWT interno emitido por el Auth Service propaga el tenant_id e institution_id para activar el RLS de PostgreSQL.
 
 ---
 
@@ -146,4 +135,4 @@ Ciudadano                Web Portal           Auth Service         SSO Nacional
 
 ---
 
-*ADR-004 aprobado por el equipo técnico de Conecta360*
+*Conecta360 v1.0 — ADR-004*

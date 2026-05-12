@@ -4,22 +4,15 @@
 > **ID:** ADR-001  
 > **Estado:** Aprobado ✅  
 > **Fecha:** 2026-05-11  
-> **Decisión tomada por:** Ariel Montero (Arquitecto de Software)  
-> **Revisado por:** Carlos Fuentes (Seguridad), Diana Rivas (Datos), Eduardo Lara (PM), Beatriz Salcedo (BA)  
+> **Área:** Arquitectura de Software  
 
 ---
 
-## 🎭 Contexto de la Decisión (Conversación del Equipo)
+## 📐 Contexto de la Decisión
 
-**Ariel (Arq):** Tenemos un sistema con 10+ millones de habitantes potenciales de Costa Verde, cinco dependencias gubernamentales con necesidades completamente diferentes y un requerimiento de 500,000 solicitudes diarias. El monolito es una trampa aquí.
+El sistema Conecta360 debe atender más de 10 millones de ciudadanos de Costa Verde, integrar instituciones gubernamentales autónomas y soportar 500,000 solicitudes diarias con un SLA del 99.9%. Cada módulo tiene ciclos de vida, equipos y requerimientos de escalabilidad distintos, lo que descarta el monolito como patrón arquitectónico viable.
 
-**Eduardo (PM):** Pero los microservicios también tienen un costo de complejidad. ¿Cómo justificamos eso al cliente?
-
-**Beatriz (BA):** Yo lo veo desde el negocio: las instituciones deben poder actualizarse independientemente. Si Salud quiere añadir telemedicina no puede bloquear a Obras Públicas.
-
-**Carlos (Seg):** Además, el aislamiento de servicios es clave para seguridad. Si el Chatbot se ve comprometido, no quiero que tenga acceso a la base de datos de casos completa.
-
-**Diana (AD):** El event-driven nos da el desacoplamiento que necesitamos para el módulo analítico. No quiero que los reportes afecten el rendimiento del core de gestión de casos.
+Se evalúó que el aislamiento de servicios es crítico tanto para escalabilidad como para seguridad: un servicio comprometido no debe tener acceso al modelo de datos completo. El patrón event-driven complementa los microservicios al desacoplar el módulo analítico del core de gestión de casos, evitando que las cargas de reportes afecten el rendimiento operativo.
 
 ---
 
@@ -76,4 +69,4 @@ Esta decisión debe revisarse si:
 
 ---
 
-*ADR-001 aprobado por el equipo técnico de Conecta360*
+*Conecta360 v1.0 — ADR-001*

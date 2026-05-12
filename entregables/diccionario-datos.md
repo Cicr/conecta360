@@ -4,24 +4,17 @@
 > **País:** Costa Verde  
 > **Versión:** 1.0  
 > **Fecha:** 2026-05-11  
-> **Responsable:** Diana Rivas — Arquitecta de Datos  
 > **Entregable:** E-01  
 
 ---
 
-## 🎭 Sesión de Definición del Diccionario — Las 5 Personas
+## 📐 Propósito
 
-**Diana (AD):** Antes de tocar una sola línea de código o un diagrama ER, necesitamos el Diccionario de Datos Canónico. Esto es lo que va a evitar que en 6 meses tengamos "caso" en un servicio y "expediente" en otro.
+Este documento establece el vocabulario canónico del sistema Conecta360. Su objetivo es garantizar que todas las áreas del proyecto (arquitectura, datos, seguridad, integraciones) utilicen los mismos nombres y definiciones para las entidades del dominio, eliminando la ambigüedad semántica entre instituciones.
 
-**Beatriz (BA):** El PRD §7.2 menciona explícitamente estas entidades: ciudadanos, casos, dependencias, flujos de atención, auditorías, notificaciones. Las tomo como base y propongo agregar "usuarios" (funcionarios y operadores) y "categorías" como soporte.
+**Entidades cubiertas** (según PRD §7.2): ciudadanos, casos, dependencias institucionales, flujos de atención, auditorías, notificaciones, adjuntos, políticas de SLA y categorías de servicio.
 
-**Ariel (Arq):** Añadiría "adjuntos" — los ciudadanos van a subir fotos de baches, documentos. Si no lo modelamos ahora, lo añadiremos en el peor momento.
-
-**Carlos (Seg):** Necesito que marquemos claramente cuáles campos son PII (Personally Identifiable Information). Eso afecta cifrado, retención y acceso.
-
-**Eduardo (PM):** Acordado. Diana, ¿podemos usar nomenclatura snake_case en inglés para los campos? Así cuando los devs implementen no hay ambigüedad.
-
-**Diana (AD):** Sí. Nomenclatura: entidades en PascalCase, campos en snake_case inglés, con alias en español para claridad del negocio. Comencemos.
+**Nomenclatura:** entidades en PascalCase, campos en snake_case inglés, con alias en español para claridad del negocio.
 
 ---
 
