@@ -1,0 +1,116 @@
+# ADR-002: Base de Datos — PostgreSQL 16 con Row-Level Security (Multi-tenant)
+
+> **Proyecto:** Conecta360  
+> **ID:** ADR-002  
+> **Estado:** Aprobado ✅  
+> **Fecha:** 2026-05-11  
+> **Decisión tomada por:** Diana Rivas (Arquitecta de Datos)  
+> **Revisado por:** Ariel Montero (Arq), Carlos Fuentes (Seg), Eduardo Lara (PM)  
+
+---
+
+## 🎭 Contexto de la Decisión
+
+**Diana (AD):** El PRD dice "multitenencia con aislamiento lógico de datos". Tenemos dos modelos clásicos: schema-per-tenant o Row-Level Security (RLS). También podría ser database-per-tenant, pero con 50 instituciones eso es operacionalmente insostenible.
+
+**Ariel (Arq):** ¿Y el enfoque NoSQL? Pensé en MongoDB para la flexibilidad de los datos de casos.
+
+**Diana (AD):** Los casos tienen relaciones muy claras: ciudadano → caso → eventos → notificaciones. Si perdemos ACID, perdemos consistencia en el flujo de atención. No lo recomiendo.
+
+**Carlos (Seg):** El RLS de PostgreSQL es la opción de seguridad más sólida. El aislamiento se aplica a nivel de motor, no solo de aplicación. Si hay un bug en el código, el motor aún protege los datos.
+
+**Eduardo (PM):** ¿Eso afecta rendimiento? ¿50 instituciones y 10 millones de casos no van a matar la base de datos?
+
+**Diana (AD):** Con índices correctos en `institution_id` y estrategia de particionamiento por fecha en tablas grandes como `CaseEvent` y `AuditLog`, es perfectamente manejable. PostgreSQL escala muy bien.
+
+---
+
+## 1. Contexto y Problema
+
+El sistema debe almacenar datos de múltiples instituciones gubernamentales con aislamiento lógico garantizado. Los datos incluyen información PII de ciudadanos, casos con historial inmutable y registros de auditoría. Se requiere ACID, búsqueda flexible y cumplimiento de seguridad de nivel gobierno.
+
+## 2. Decisión
+
+**Se adopta PostgreSQL 16 como base de datos relacional principal con:**
+- **Row-Level Security (RLS)** para aislamiento multi-tenant por institución
+- **Schema único** con columna `institution_id` en todas las entidades relevantes
+- **Particionamiento por rango de fecha** para tablas de alto volumen (CaseEvent, AuditLog, Notification)
+- **Réplica de lectura** para CQRS (Read Model)
+- **Cifrado de columnas** con pgcrypto para campos PII
+
+## 3. Alternativas Evaluadas
+
+| Opción | Ventajas | Desventajas | Score |
+|--------|---------|-------------|:---:|
+| **Schema-per-tenant (PostgreSQL)** | Aislamiento total, fácil backup por tenant | 50+ schemas difíciles de mantener, migraciones costosas | 6/10 |
+| **Database-per-tenant** | Aislamiento total, independencia total | 50+ bases de datos, imposible de gestionar | 3/10 |
+| **PostgreSQL + RLS** ✅ | Aislamiento en motor, single schema, flexible | Requiere SET LOCAL en cada conexión | 9/10 |
+| **MongoDB** | Esquema flexible, JSON nativo | Sin ACID completo en transacciones multi-doc, joins costosos | 5/10 |
+| **Oracle** | Maduro, multi-tenant nativo | Costo de licenciamiento prohibitivo para gobierno | 4/10 |
+| **CockroachDB** | Distribuido, PostgreSQL compatible | Complejidad operacional, costo en cloud | 6/10 |
+
+## 4. Implementación de Multi-tenancy con RLS
+
+```sql
+-- Activar RLS en la tabla Case
+ALTER TABLE cases ENABLE ROW LEVEL SECURITY;
+
+-- Política de aislamiento por institución
+CREATE POLICY tenant_isolation ON cases
+    USING (institution_id = current_setting('app.current_tenant')::UUID);
+
+-- Cada conexión del microservicio establece el tenant
+SET LOCAL app.current_tenant = '123e4567-e89b-12d3-a456-426614174000';
+```
+
+## 5. Estrategia de Particionamiento
+
+```sql
+-- CaseEvent: particionado por mes (append-only, alto volumen)
+CREATE TABLE case_events (
+    event_id UUID,
+    case_id UUID,
+    created_at TIMESTAMPTZ NOT NULL
+) PARTITION BY RANGE (created_at);
+
+CREATE TABLE case_events_2026_05
+    PARTITION OF case_events
+    FOR VALUES FROM ('2026-05-01') TO ('2026-06-01');
+```
+
+## 6. Campos PII Cifrados
+
+| Campo | Entidad | Método | Gestión de clave |
+|-------|---------|--------|-----------------|
+| `national_id` | Citizen | AES-256-GCM (pgcrypto) | HashiCorp Vault |
+| `email` | Citizen | AES-256-GCM | HashiCorp Vault |
+| `phone_number` | Citizen | AES-256-GCM | HashiCorp Vault |
+| `password_hash` | User | bcrypt (factor 12) | N/A (hash unidireccional) |
+
+## 7. Consecuencias
+
+### Positivas
+- ACID garantizado en todas las transacciones
+- RLS aplicado a nivel de motor (defensa en profundidad)
+- Herramientas maduras: pg_dump, pgAdmin, Flyway/Liquibase
+- Extensiones: pgcrypto (cifrado), pg_partman (particionado), pg_stat_statements (performance)
+- Compatible con herramientas de BI estándar
+
+### Negativas / Riesgos asumidos
+- Requiere `SET LOCAL` en cada conexión del pool → **Mitigación:** middleware de infraestructura en cada servicio
+- Escalabilidad vertical antes que horizontal → **Mitigación:** read replicas + particionado + caché Redis
+- pgcrypto agrega latencia en campos cifrados → **Mitigación:** índices sobre hashes para búsquedas
+
+## 8. Herramientas de Gestión
+
+| Herramienta | Uso |
+|-------------|-----|
+| **Flyway** | Migraciones de base de datos versionadas |
+| **pgAdmin 4** | Administración visual de la BD |
+| **pg_partman** | Gestión automática de particiones |
+| **Patroni** | Alta disponibilidad y failover automático |
+| **pgBouncer** | Connection pooling |
+
+---
+
+*ADR-002 aprobado por el equipo técnico de Conecta360*

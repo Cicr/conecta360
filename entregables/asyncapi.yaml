@@ -1,0 +1,713 @@
+asyncapi: "2.6.0"
+info:
+  title: Conecta360 — API de Eventos Asíncronos
+  version: "1.0.0"
+  description: |
+    Especificación AsyncAPI para el bus de eventos de **Conecta360**.
+    Implementado sobre Apache Kafka 3.x con Schema Registry (Avro/JSON Schema).
+    
+    **Entregable:** §7.4 — Diseño de APIs asíncronas
+    **Arquitecto:** Ariel Montero | **Arquitecta de Datos:** Diana Rivas
+  contact:
+    name: Equipo Arquitectura Conecta360
+    email: arquitectura@conecta360.gob.cv
+
+defaultContentType: application/json
+
+servers:
+  production:
+    url: kafka.conecta360.gob.cv:9093
+    protocol: kafka-secure
+    description: Kafka cluster producción — Región Norte (primary)
+    security:
+      - saslScram: []
+  staging:
+    url: kafka-staging.conecta360.gob.cv:9093
+    protocol: kafka-secure
+    description: Kafka cluster staging
+
+channels:
+  # ─── DOMAIN: CASES ──────────────────────────────────────────────
+  cases.case.created:
+    description: |
+      Publicado cuando un ciudadano crea un nuevo caso/solicitud.
+      Consumidores: Notification Service, Analytics Service, Institution Service.
+    subscribe:
+      operationId: onCaseCreated
+      summary: Un nuevo caso fue creado en el sistema
+      message:
+        $ref: '#/components/messages/CaseCreated'
+
+  cases.case.assigned:
+    description: |
+      Publicado cuando un caso es asignado a un funcionario (manual o automático).
+      Consumidores: Notification Service, Analytics Service.
+    subscribe:
+      operationId: onCaseAssigned
+      summary: Un caso fue asignado a un funcionario
+      message:
+        $ref: '#/components/messages/CaseAssigned'
+
+  cases.case.updated:
+    description: |
+      Publicado cuando el estado o datos de un caso son actualizados.
+      Consumidores: Notification Service, Analytics Service.
+    subscribe:
+      operationId: onCaseUpdated
+      summary: Un caso fue actualizado
+      message:
+        $ref: '#/components/messages/CaseUpdated'
+
+  cases.case.resolved:
+    description: |
+      Publicado cuando un funcionario marca un caso como resuelto.
+      Consumidores: Notification Service (envía notificación al ciudadano), Analytics Service.
+    subscribe:
+      operationId: onCaseResolved
+      summary: Un caso fue marcado como resuelto
+      message:
+        $ref: '#/components/messages/CaseResolved'
+
+  cases.case.closed:
+    description: |
+      Publicado cuando un caso es cerrado definitivamente.
+      Consumidores: Analytics Service, Audit Service.
+    subscribe:
+      operationId: onCaseClosed
+      summary: Un caso fue cerrado
+      message:
+        $ref: '#/components/messages/CaseClosed'
+
+  cases.case.escalated:
+    description: |
+      Publicado por el SLA Scheduler cuando un caso supera su deadline sin resolverse.
+      Consumidores: Notification Service (alerta a supervisor), Institution Service (reasignación).
+    subscribe:
+      operationId: onCaseEscalated
+      summary: Un caso fue escalado por vencimiento de SLA
+      message:
+        $ref: '#/components/messages/CaseEscalated'
+
+  # ─── DOMAIN: NOTIFICATIONS ──────────────────────────────────────
+  notifications.notification.requested:
+    description: |
+      Publicado por Case Service para solicitar el envío de una notificación al ciudadano.
+      Consumidor: Notification Service.
+    subscribe:
+      operationId: onNotificationRequested
+      summary: Se solicita envío de notificación
+      message:
+        $ref: '#/components/messages/NotificationRequested'
+
+  notifications.notification.sent:
+    description: |
+      Publicado por Notification Service cuando entrega el mensaje al proveedor externo.
+      Consumidor: Analytics Service.
+    subscribe:
+      operationId: onNotificationSent
+      summary: Notificación enviada al proveedor
+      message:
+        $ref: '#/components/messages/NotificationSent'
+
+  notifications.notification.failed:
+    description: |
+      Publicado por Notification Service cuando un envío falla definitivamente (después de reintentos).
+      Consumidor: Analytics Service, Dead Letter Queue handler.
+    subscribe:
+      operationId: onNotificationFailed
+      summary: Notificación fallida tras reintentos
+      message:
+        $ref: '#/components/messages/NotificationFailed'
+
+  # ─── DOMAIN: AUDIT ──────────────────────────────────────────────
+  audit.event.recorded:
+    description: |
+      Publicado por cualquier microservicio para registrar operaciones sensibles.
+      Consumidor: Audit Service (persiste en AuditLog inmutable).
+    subscribe:
+      operationId: onAuditEventRecorded
+      summary: Evento de auditoría registrado
+      message:
+        $ref: '#/components/messages/AuditEvent'
+
+# ─── COMPONENTS ─────────────────────────────────────────────────────────────
+components:
+  securitySchemes:
+    saslScram:
+      type: scramSha512
+      description: SASL/SCRAM-SHA-512 para autenticación Kafka. Credenciales gestionadas por HashiCorp Vault.
+
+  messages:
+    CaseCreated:
+      name: CaseCreated
+      title: Caso Creado
+      contentType: application/json
+      headers:
+        type: object
+        properties:
+          correlationId:
+            type: string
+            format: uuid
+            description: ID de correlación para trazabilidad distribuida
+          producerService:
+            type: string
+            example: "case-service"
+          schemaVersion:
+            type: string
+            example: "1.0"
+      payload:
+        $ref: '#/components/schemas/CaseCreatedPayload'
+      examples:
+        - name: BacheReportado
+          summary: Ciudadano reporta un bache por canal web
+          payload:
+            event_id: "018f2000-0000-7000-0000-000000000001"
+            event_type: "case.created"
+            occurred_at: "2026-05-11T19:55:00Z"
+            case_id: "018f1c2d-3e4f-7890-abcd-ef1234567890"
+            case_number: "C360-2026-000042"
+            citizen_id: "cit-uuid-001"
+            category_code: "VIA_BACHE"
+            institution_id: "inst-obras-publicas"
+            priority: "medium"
+            channel: "web"
+            sla_deadline: "2026-05-13T19:55:00Z"
+            location:
+              address: "Avenida Principal #120, San Cristóbal"
+              lat: 9.748917
+              lng: -83.753428
+
+    CaseAssigned:
+      name: CaseAssigned
+      title: Caso Asignado
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CaseAssignedPayload'
+      examples:
+        - name: AsignacionAutomatica
+          summary: Caso asignado automáticamente por el motor de enrutamiento
+          payload:
+            event_id: "018f2000-0000-7000-0000-000000000002"
+            event_type: "case.assigned"
+            occurred_at: "2026-05-11T19:56:30Z"
+            case_id: "018f1c2d-3e4f-7890-abcd-ef1234567890"
+            case_number: "C360-2026-000042"
+            assigned_user_id: "usr-uuid-123"
+            assigned_user_name: "Juan Pérez"
+            institution_id: "inst-obras-publicas"
+            assignment_type: "automatic"
+            reason: "Asignación automática por balanceo de carga."
+
+    CaseUpdated:
+      name: CaseUpdated
+      title: Caso Actualizado
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CaseUpdatedPayload'
+      examples:
+        - name: CambioEstadoEnProgreso
+          summary: Funcionario cambia estado a en_progreso
+          payload:
+            event_id: "018f2000-0000-7000-0000-000000000003"
+            event_type: "case.updated"
+            occurred_at: "2026-05-11T20:10:00Z"
+            case_id: "018f1c2d-3e4f-7890-abcd-ef1234567890"
+            case_number: "C360-2026-000042"
+            updated_by_user_id: "usr-uuid-123"
+            previous_status: "assigned"
+            current_status: "in_progress"
+            comment: "Técnico en camino a verificar el bache."
+            is_public: true
+
+    CaseResolved:
+      name: CaseResolved
+      title: Caso Resuelto
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/CaseResolvedPayload'
+      examples:
+        - name: BacheReparado
+          summary: Inspector reporta que el bache fue reparado
+          payload:
+            event_id: "018f2000-0000-7000-0000-000000000004"
+            event_type: "case.resolved"
+            occurred_at: "2026-05-12T14:30:00Z"
+            case_id: "018f1c2d-3e4f-7890-abcd-ef1234567890"
+            case_number: "C360-2026-000042"
+            resolved_by_user_id: "usr-uuid-123"
+            institution_id: "inst-obras-publicas"
+            resolution_comment: "Bache reparado con mezcla asfáltica en frío. Trabajo finalizado."
+            resolution_hours: 42.6
+            sla_met: true
+            citizen_id: "cit-uuid-001"
+            notify_citizen: true
+
+    CaseClosed:
+      name: CaseClosed
+      title: Caso Cerrado
+      contentType: application/json
+      payload:
+        type: object
+        required: [event_id, event_type, occurred_at, case_id, case_number, institution_id]
+        properties:
+          event_id:
+            type: string
+            format: uuid
+          event_type:
+            type: string
+            const: "case.closed"
+          occurred_at:
+            type: string
+            format: date-time
+          case_id:
+            type: string
+            format: uuid
+          case_number:
+            type: string
+          institution_id:
+            type: string
+            format: uuid
+          satisfaction_score:
+            type: integer
+            minimum: 1
+            maximum: 5
+            nullable: true
+          closed_by:
+            type: string
+            enum: [citizen, system, admin]
+      examples:
+        - name: CierreConCalificacion
+          payload:
+            event_id: "018f2000-0000-7000-0000-000000000005"
+            event_type: "case.closed"
+            occurred_at: "2026-05-14T10:05:00Z"
+            case_id: "018f1c2d-3e4f-7890-abcd-ef1234567890"
+            case_number: "C360-2026-000042"
+            institution_id: "inst-obras-publicas"
+            satisfaction_score: 4
+            closed_by: "citizen"
+
+    CaseEscalated:
+      name: CaseEscalated
+      title: Caso Escalado por SLA
+      contentType: application/json
+      payload:
+        type: object
+        required: [event_id, event_type, occurred_at, case_id, case_number, sla_deadline, hours_overdue]
+        properties:
+          event_id:
+            type: string
+            format: uuid
+          event_type:
+            type: string
+            const: "case.escalated"
+          occurred_at:
+            type: string
+            format: date-time
+          case_id:
+            type: string
+            format: uuid
+          case_number:
+            type: string
+          current_status:
+            $ref: '#/components/schemas/CaseStatus'
+          priority:
+            $ref: '#/components/schemas/Priority'
+          institution_id:
+            type: string
+            format: uuid
+          assigned_user_id:
+            type: string
+            format: uuid
+            nullable: true
+          supervisor_id:
+            type: string
+            format: uuid
+          sla_deadline:
+            type: string
+            format: date-time
+          hours_overdue:
+            type: number
+            description: Horas transcurridas desde el vencimiento del SLA
+      examples:
+        - name: EscalacionSLA
+          payload:
+            event_id: "018f2000-0000-7000-0000-000000000006"
+            event_type: "case.escalated"
+            occurred_at: "2026-05-14T19:55:00Z"
+            case_id: "018f1c2d-3e4f-7890-abcd-ef1234567891"
+            case_number: "C360-2026-000043"
+            current_status: "assigned"
+            priority: "high"
+            institution_id: "inst-obras-publicas"
+            assigned_user_id: "usr-uuid-456"
+            supervisor_id: "sup-uuid-001"
+            sla_deadline: "2026-05-13T19:55:00Z"
+            hours_overdue: 24.0
+
+    NotificationRequested:
+      name: NotificationRequested
+      title: Notificación Solicitada
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/NotificationRequestedPayload'
+      examples:
+        - name: NotificacionCasoResuelto
+          payload:
+            event_id: "018f2000-0000-7000-0000-000000000007"
+            event_type: "notification.requested"
+            occurred_at: "2026-05-12T14:30:01Z"
+            notification_id: "notif-uuid-001"
+            citizen_id: "cit-uuid-001"
+            case_id: "018f1c2d-3e4f-7890-abcd-ef1234567890"
+            case_number: "C360-2026-000042"
+            preferred_channel: "email"
+            template_id: "case_resolved"
+            template_variables:
+              case_number: "C360-2026-000042"
+              case_title: "Bache profundo en Avenida Principal #120"
+              resolution_comment: "Bache reparado con mezcla asfáltica en frío."
+              citizen_name: "María"
+
+    NotificationSent:
+      name: NotificationSent
+      title: Notificación Enviada
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          event_id:
+            type: string
+            format: uuid
+          event_type:
+            type: string
+            const: "notification.sent"
+          occurred_at:
+            type: string
+            format: date-time
+          notification_id:
+            type: string
+            format: uuid
+          channel:
+            type: string
+          provider:
+            type: string
+            example: "sendgrid"
+          external_id:
+            type: string
+            description: ID del mensaje en el proveedor externo
+      examples:
+        - name: EmailEnviado
+          payload:
+            event_id: "018f2000-0000-7000-0000-000000000008"
+            event_type: "notification.sent"
+            occurred_at: "2026-05-12T14:30:05Z"
+            notification_id: "notif-uuid-001"
+            channel: "email"
+            provider: "sendgrid"
+            external_id: "sg-msg-abc123xyz"
+
+    NotificationFailed:
+      name: NotificationFailed
+      title: Notificación Fallida
+      contentType: application/json
+      payload:
+        type: object
+        properties:
+          event_id:
+            type: string
+            format: uuid
+          event_type:
+            type: string
+            const: "notification.failed"
+          occurred_at:
+            type: string
+            format: date-time
+          notification_id:
+            type: string
+            format: uuid
+          channel:
+            type: string
+          retry_count:
+            type: integer
+          error_code:
+            type: string
+          error_message:
+            type: string
+      examples:
+        - name: SMSFallido
+          payload:
+            event_id: "018f2000-0000-7000-0000-000000000009"
+            event_type: "notification.failed"
+            occurred_at: "2026-05-12T14:35:00Z"
+            notification_id: "notif-uuid-002"
+            channel: "sms"
+            retry_count: 3
+            error_code: "INVALID_PHONE_NUMBER"
+            error_message: "El número de teléfono no es válido o está fuera de servicio."
+
+    AuditEvent:
+      name: AuditEvent
+      title: Evento de Auditoría
+      contentType: application/json
+      payload:
+        $ref: '#/components/schemas/AuditEventPayload'
+      examples:
+        - name: CiudadanoConsultaCaso
+          payload:
+            event_id: "018f2000-0000-7000-0000-000000000010"
+            event_type: "audit.event"
+            occurred_at: "2026-05-11T20:00:00Z"
+            entity_type: "Case"
+            entity_id: "018f1c2d-3e4f-7890-abcd-ef1234567890"
+            action: "read"
+            actor_type: "citizen"
+            actor_id: "cit-uuid-001"
+            service: "case-service"
+            ip_address: "190.10.20.30"
+            institution_id: null
+
+  schemas:
+    CaseStatus:
+      type: string
+      enum: [received, assigned, in_progress, pending_info, resolved, closed, cancelled]
+
+    Priority:
+      type: string
+      enum: [low, medium, high, critical]
+
+    CaseCreatedPayload:
+      type: object
+      required: [event_id, event_type, occurred_at, case_id, case_number, citizen_id, category_code, institution_id, priority, channel, sla_deadline]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "case.created"
+        occurred_at:
+          type: string
+          format: date-time
+        case_id:
+          type: string
+          format: uuid
+        case_number:
+          type: string
+          pattern: '^C360-\d{4}-\d{6}$'
+        citizen_id:
+          type: string
+          format: uuid
+        category_code:
+          type: string
+        institution_id:
+          type: string
+          format: uuid
+        priority:
+          $ref: '#/components/schemas/Priority'
+        channel:
+          type: string
+          enum: [web, mobile, phone, social, in_person]
+        sla_deadline:
+          type: string
+          format: date-time
+        location:
+          type: object
+          nullable: true
+          properties:
+            address:
+              type: string
+            lat:
+              type: number
+            lng:
+              type: number
+
+    CaseAssignedPayload:
+      type: object
+      required: [event_id, event_type, occurred_at, case_id, case_number, assigned_user_id, institution_id, assignment_type]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "case.assigned"
+        occurred_at:
+          type: string
+          format: date-time
+        case_id:
+          type: string
+          format: uuid
+        case_number:
+          type: string
+        assigned_user_id:
+          type: string
+          format: uuid
+        assigned_user_name:
+          type: string
+        institution_id:
+          type: string
+          format: uuid
+        assignment_type:
+          type: string
+          enum: [automatic, manual]
+        reason:
+          type: string
+          nullable: true
+
+    CaseUpdatedPayload:
+      type: object
+      required: [event_id, event_type, occurred_at, case_id, case_number, previous_status, current_status]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "case.updated"
+        occurred_at:
+          type: string
+          format: date-time
+        case_id:
+          type: string
+          format: uuid
+        case_number:
+          type: string
+        updated_by_user_id:
+          type: string
+          format: uuid
+          nullable: true
+        previous_status:
+          $ref: '#/components/schemas/CaseStatus'
+        current_status:
+          $ref: '#/components/schemas/CaseStatus'
+        comment:
+          type: string
+          nullable: true
+        is_public:
+          type: boolean
+          default: false
+
+    CaseResolvedPayload:
+      type: object
+      required: [event_id, event_type, occurred_at, case_id, case_number, resolved_by_user_id, institution_id, resolution_hours, sla_met, citizen_id]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "case.resolved"
+        occurred_at:
+          type: string
+          format: date-time
+        case_id:
+          type: string
+          format: uuid
+        case_number:
+          type: string
+        resolved_by_user_id:
+          type: string
+          format: uuid
+        institution_id:
+          type: string
+          format: uuid
+        resolution_comment:
+          type: string
+          nullable: true
+        resolution_hours:
+          type: number
+          description: Horas transcurridas desde la creación hasta la resolución
+        sla_met:
+          type: boolean
+        citizen_id:
+          type: string
+          format: uuid
+        notify_citizen:
+          type: boolean
+          default: true
+
+    NotificationRequestedPayload:
+      type: object
+      required: [event_id, event_type, occurred_at, notification_id, citizen_id, preferred_channel, template_id]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "notification.requested"
+        occurred_at:
+          type: string
+          format: date-time
+        notification_id:
+          type: string
+          format: uuid
+        citizen_id:
+          type: string
+          format: uuid
+        case_id:
+          type: string
+          format: uuid
+          nullable: true
+        case_number:
+          type: string
+          nullable: true
+        preferred_channel:
+          type: string
+          enum: [email, sms, push, whatsapp]
+        template_id:
+          type: string
+          description: ID del template de mensaje a usar
+          example: "case_resolved"
+        template_variables:
+          type: object
+          additionalProperties:
+            type: string
+
+    AuditEventPayload:
+      type: object
+      required: [event_id, event_type, occurred_at, entity_type, entity_id, action, actor_type, actor_id, service, ip_address]
+      properties:
+        event_id:
+          type: string
+          format: uuid
+        event_type:
+          type: string
+          const: "audit.event"
+        occurred_at:
+          type: string
+          format: date-time
+        entity_type:
+          type: string
+          example: "Case"
+        entity_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+          enum: [create, read, update, delete, login, logout, export]
+        actor_type:
+          type: string
+          enum: [citizen, user, system]
+        actor_id:
+          type: string
+          format: uuid
+        service:
+          type: string
+          description: Nombre del microservicio que genera el evento
+          example: "case-service"
+        ip_address:
+          type: string
+        institution_id:
+          type: string
+          format: uuid
+          nullable: true
+        before_state:
+          type: object
+          nullable: true
+          description: Estado del recurso antes del cambio (solo en update/delete)
+        after_state:
+          type: object
+          nullable: true
+          description: Estado del recurso después del cambio

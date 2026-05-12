@@ -1,0 +1,134 @@
+@startuml c4-containers
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+skinparam backgroundColor #FAFAFA
+LAYOUT_WITH_LEGEND()
+
+title <b>Conecta360 — Diagrama C4 Nivel 2: Contenedores</b>\n<size:11>Versión 1.0 | 2026-05-11 | Arquitecto de Software: Ariel Montero</size>
+
+' ============================================================
+' ACTORES
+' ============================================================
+Person(citizen, "Ciudadano", "Reporta casos y hace seguimiento")
+Person(agent, "Agente / Funcionario", "Gestiona casos institucionales")
+Person(admin, "Admin / Supervisor", "Administra el sistema")
+
+' ============================================================
+' SISTEMAS EXTERNOS (SIMPLIFICADOS)
+' ============================================================
+System_Ext(sso, "SSO Nacional", "OpenID Connect / OAuth2")
+System_Ext(messaging, "Mensajería\n(Twilio/SendGrid/FCM)", "SMS, Email, Push")
+System_Ext(social_wa, "Redes Sociales +\nWhatsApp Business", "Canales externos")
+System_Ext(legacy_systems, "Sistemas Legados\n(Salud, Obras, Energía)", "APIs institucionales")
+System_Ext(powerbi, "Power BI / DWH", "Business Intelligence")
+
+' ============================================================
+' SISTEMA CONECTA360
+' ============================================================
+System_Boundary(conecta360, "Conecta360") {
+
+    ' ─── CAPA DE PRESENTACIÓN ────────────────────────────────
+    Container(web_portal, "Portal Web Ciudadano", "React / Next.js\nHTTPS + CDN", "SPA para que el ciudadano reporte casos,\nhaga seguimiento y reciba notificaciones.\nResponsive design.")
+
+    Container(backoffice, "Back-Office Institucional", "React / Next.js\nHTTPS + CDN", "Panel para funcionarios, supervisores\ny administradores. RBAC por institución.\nDashboards y gestión de casos.")
+
+    Container(mobile_app, "App Móvil", "React Native\niOS + Android", "Aplicación nativa para ciudadanos.\nSoporte offline básico, geolocalización\ny notificaciones push.")
+
+    ' ─── CAPA DE INTEGRACIÓN / ENTRADA ────────────────────────
+    Container(api_gateway, "API Gateway", "Kong OSS\n(Kubernetes)", "Punto de entrada único para todas las APIs.\nTerminación TLS, rate limiting, auth JWT,\nWAF, routing a microservicios.")
+
+    Container(channel_adapter, "Channel Adapter Service", "Node.js / Go\nKubernetes Pod", "Adaptador para canales externos:\nWhatsApp, Facebook, Twitter/X.\nNormaliza mensajes al formato canónico.")
+
+    ' ─── CAPA DE APLICACIÓN (MICROSERVICIOS) ──────────────────
+    Container(case_service, "Case Service", "Go / REST + gRPC\nKubernetes", "Microservicio core. Gestión del ciclo\ncompleto de casos: creación, asignación,\nactualización de estado y resolución.")
+
+    Container(citizen_service, "Citizen Service", "Go / REST\nKubernetes", "Gestión de perfiles ciudadanos.\nRegistro, actualización, consentimientos.\nEncriptación de datos PII.")
+
+    Container(notification_service, "Notification Service", "Node.js / Kafka Consumer\nKubernetes", "Escucha eventos del bus y envía\nnotificaciones por el canal preferido\ndel ciudadano (email, SMS, push, WA).")
+
+    Container(chatbot_service, "Chatbot / AI Service", "Python / FastAPI\nKubernetes + GPU", "Chatbot de IA para atención inicial.\nClasificación de casos, FAQ automático.\nHuman-in-the-loop si confianza < 80%.")
+
+    Container(analytics_service, "Analytics Service", "Python / FastAPI\nKubernetes", "Agrega KPIs, genera reportes.\nLee del Read Model / DWH.\nExporta a Power BI / CSV / Excel.")
+
+    Container(institution_service, "Institution & SLA Service", "Go / REST\nKubernetes", "Gestión de instituciones, categorías,\nSLAs y reglas de enrutamiento.\nMotor de reglas de derivación automática.")
+
+    Container(auth_service, "Auth Service / IdP Proxy", "Go / REST\nKubernetes", "Proxy de autenticación. Valida tokens\nOpenID Connect del SSO Nacional.\nEmite JWT internos con claims de tenant.")
+
+    Container(attachment_service, "Attachment Service", "Go / REST\nKubernetes", "Gestión de archivos adjuntos.\nAnti-virus scan, validación de tipo\ny almacenamiento en Object Storage.")
+
+    ' ─── BUS DE MENSAJERÍA ────────────────────────────────────
+    Container(kafka, "Apache Kafka\n+ Schema Registry", "Kafka 3.x\n(Kubernetes / MSK)", "Bus de eventos central. Topics:\ncase.created, case.updated,\ncase.assigned, notification.sent,\naudit.event")
+
+    ' ─── CAPA DE DATOS ────────────────────────────────────────
+    ContainerDb(main_db, "Base de Datos Principal", "PostgreSQL 16\n(Multi-tenant / RLS)", "Almacena: ciudadanos, casos, eventos,\ninstituciones, SLAs, adjuntos (meta).\nRow-Level Security por institución.")
+
+    ContainerDb(read_model, "Read Model / CQRS", "PostgreSQL ReadReplica\n+ Elasticsearch 8", "Proyecciones optimizadas para lecturas.\nDashboards, búsquedas full-text\nde casos, KPIs near-real-time.")
+
+    ContainerDb(cache, "Caché Distribuido", "Redis 7\nCluster Mode", "Caché de sesiones JWT, configuraciones,\ncategorías y SLAs. TTL configurable.\nEvitar cold-start en picos.")
+
+    ContainerDb(object_storage, "Object Storage", "MinIO / AWS S3\nor GCS", "Almacenamiento de adjuntos (imágenes,\ndocumentos). Cifrado AES-256 server-side.\nPresigned URLs para descarga segura.")
+
+    ContainerDb(secrets_vault, "Secrets Vault", "HashiCorp Vault\nor AWS Secrets Manager", "Gestión centralizada de secretos:\nAPI keys, certificados, claves de cifrado.\nRotación automática de credenciales.")
+
+}
+
+' ============================================================
+' RELACIONES — ACTORES → FRONTEND
+' ============================================================
+Rel(citizen, web_portal, "Reporta casos, hace seguimiento", "HTTPS")
+Rel(citizen, mobile_app, "Reporta casos, recibe notificaciones push", "HTTPS")
+Rel(agent, backoffice, "Gestiona casos, visualiza panel", "HTTPS")
+Rel(admin, backoffice, "Administra usuarios, instituciones, SLAs", "HTTPS")
+
+' ============================================================
+' RELACIONES — FRONTENDS → API GATEWAY
+' ============================================================
+Rel(web_portal, api_gateway, "Llamadas API REST", "HTTPS / JSON")
+Rel(mobile_app, api_gateway, "Llamadas API REST", "HTTPS / JSON")
+Rel(backoffice, api_gateway, "Llamadas API REST", "HTTPS / JSON")
+
+' ============================================================
+' RELACIONES — EXTERNOS → CHANNEL ADAPTER
+' ============================================================
+Rel(social_wa, channel_adapter, "Webhooks de mensajes y menciones", "HTTPS / Webhooks")
+Rel(channel_adapter, api_gateway, "Crea casos desde canales externos", "HTTPS / JWT")
+
+' ============================================================
+' RELACIONES — API GATEWAY → MICROSERVICIOS
+' ============================================================
+Rel(api_gateway, auth_service, "Valida JWT en cada request", "gRPC / internal")
+Rel(api_gateway, case_service, "POST/GET/PUT /cases", "HTTPS / REST")
+Rel(api_gateway, citizen_service, "POST/GET/PUT /citizens", "HTTPS / REST")
+Rel(api_gateway, analytics_service, "GET /dashboards, /reports", "HTTPS / REST")
+Rel(api_gateway, institution_service, "CRUD /institutions, /slas, /categories", "HTTPS / REST")
+Rel(api_gateway, attachment_service, "POST/GET /attachments", "HTTPS / REST")
+Rel(api_gateway, chatbot_service, "POST /chat/message", "HTTPS / REST")
+
+' ============================================================
+' RELACIONES — MICROSERVICIOS → KAFKA
+' ============================================================
+Rel(case_service, kafka, "Publica: case.created, case.updated,\ncase.assigned, case.closed", "Kafka Producer")
+Rel(notification_service, kafka, "Consume: case.*, notification.*", "Kafka Consumer")
+Rel(analytics_service, kafka, "Consume: todos los eventos para\nproyecciones CQRS", "Kafka Consumer")
+
+' ============================================================
+' RELACIONES — MICROSERVICIOS → BASES DE DATOS
+' ============================================================
+Rel(case_service, main_db, "Lee/escribe casos y eventos", "PostgreSQL / TLS")
+Rel(citizen_service, main_db, "Lee/escribe ciudadanos", "PostgreSQL / TLS")
+Rel(institution_service, main_db, "Lee/escribe instituciones y SLAs", "PostgreSQL / TLS")
+Rel(analytics_service, read_model, "Lee proyecciones y KPIs", "PostgreSQL / Elasticsearch")
+Rel(case_service, cache, "Caché de categorías y SLAs", "Redis")
+Rel(auth_service, cache, "Blacklist de tokens revocados", "Redis")
+Rel(attachment_service, object_storage, "Almacena/recupera archivos", "S3 API / TLS")
+Rel(auth_service, secrets_vault, "Obtiene claves de cifrado y API keys", "HTTPS / mTLS")
+
+' ============================================================
+' RELACIONES — MICROSERVICIOS → EXTERNOS
+' ============================================================
+Rel(auth_service, sso, "Valida tokens OIDC del SSO nacional", "HTTPS / OIDC")
+Rel(notification_service, messaging, "Envía SMS, emails y push", "HTTPS / API")
+Rel(case_service, legacy_systems, "Sincroniza casos con sistemas\nlegados institucionales", "HTTPS / REST / ACL")
+Rel(analytics_service, powerbi, "Exporta datos analíticos", "HTTPS / OData")
+
+@enduml

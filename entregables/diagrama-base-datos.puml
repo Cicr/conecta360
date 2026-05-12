@@ -1,0 +1,291 @@
+@startuml diagrama-base-datos
+!theme plain
+skinparam backgroundColor #FAFAFA
+skinparam defaultFontName "DejaVu Sans"
+skinparam defaultFontSize 10
+skinparam linetype ortho
+skinparam roundcorner 5
+skinparam class {
+    BackgroundColor #EEF4FF
+    BorderColor #4A6FA5
+    HeaderBackgroundColor #2D5AA0
+    FontColor #000000
+    HeaderFontColor #FFFFFF
+}
+skinparam note {
+    BackgroundColor #FFFDE7
+    BorderColor #F9A825
+}
+
+title <b>Conecta360 — Diagrama de Base de Datos (ER)</b>\n<size:11>Versión 1.0 | 2026-05-11 | Arquitecta de Datos: Diana Rivas</size>
+
+' ============================================================
+' ENTIDAD: Citizen
+' ============================================================
+entity "**Citizen**\n<size:9>(ciudadano)</size>" as Citizen {
+    * citizen_id : UUID <<PK>>
+    --
+    * national_id : VARCHAR(20) <<UNIQUE, AES-256>>
+    * national_id_type : ENUM
+    * first_name : VARCHAR(100) <<AES-256>>
+    * last_name : VARCHAR(100) <<AES-256>>
+    ~ email : VARCHAR(255) <<UNIQUE, AES-256>>
+    ~ phone_number : VARCHAR(20) <<AES-256>>
+    * preferred_channel : ENUM
+    * consent_notifications : BOOLEAN
+    ~ consent_date : TIMESTAMPTZ
+    * is_active : BOOLEAN
+    * created_at : TIMESTAMPTZ
+    * updated_at : TIMESTAMPTZ
+    ~ deleted_at : TIMESTAMPTZ
+}
+
+' ============================================================
+' ENTIDAD: User
+' ============================================================
+entity "**User**\n<size:9>(funcionario/operador)</size>" as User {
+    * user_id : UUID <<PK>>
+    --
+    * username : VARCHAR(100) <<UNIQUE>>
+    * email : VARCHAR(255) <<UNIQUE, AES-256>>
+    * first_name : VARCHAR(100)
+    * last_name : VARCHAR(100)
+    * institution_id : UUID <<FK>>
+    * role : ENUM
+    * is_active : BOOLEAN
+    ~ last_login_at : TIMESTAMPTZ
+    * password_hash : VARCHAR(255) <<bcrypt>>
+    * mfa_enabled : BOOLEAN
+    * created_at : TIMESTAMPTZ
+    * updated_at : TIMESTAMPTZ
+}
+
+' ============================================================
+' ENTIDAD: Institution
+' ============================================================
+entity "**Institution**\n<size:9>(dependencia)</size>" as Institution {
+    * institution_id : UUID <<PK>>
+    --
+    * code : VARCHAR(20) <<UNIQUE>>
+    * name : VARCHAR(200)
+    ~ description : TEXT
+    ~ parent_institution_id : UUID <<FK self>>
+    ~ contact_email : VARCHAR(255)
+    ~ contact_phone : VARCHAR(20)
+    ~ sla_policy_id : UUID <<FK>>
+    * is_active : BOOLEAN
+    * created_at : TIMESTAMPTZ
+    * updated_at : TIMESTAMPTZ
+}
+
+' ============================================================
+' ENTIDAD: ServiceCategory
+' ============================================================
+entity "**ServiceCategory**\n<size:9>(categoría servicio)</size>" as ServiceCategory {
+    * category_id : UUID <<PK>>
+    --
+    * code : VARCHAR(50) <<UNIQUE>>
+    * name : VARCHAR(200)
+    ~ description : TEXT
+    ~ parent_category_id : UUID <<FK self>>
+    * default_institution_id : UUID <<FK>>
+    * priority_level : ENUM
+    * is_active : BOOLEAN
+    * created_at : TIMESTAMPTZ
+}
+
+' ============================================================
+' ENTIDAD: SlaPolicy
+' ============================================================
+entity "**SlaPolicy**\n<size:9>(política SLA)</size>" as SlaPolicy {
+    * sla_policy_id : UUID <<PK>>
+    --
+    * name : VARCHAR(200)
+    ~ category_id : UUID <<FK>>
+    ~ institution_id : UUID <<FK>>
+    * priority : ENUM
+    * response_time_hours : INTEGER
+    * resolution_time_hours : INTEGER
+    * escalation_time_hours : INTEGER
+    * is_active : BOOLEAN
+    * created_at : TIMESTAMPTZ
+    * updated_at : TIMESTAMPTZ
+}
+
+' ============================================================
+' ENTIDAD: Case
+' ============================================================
+entity "**Case**\n<size:9>(caso/solicitud/incidencia)</size>" as Case {
+    * case_id : UUID <<PK>>
+    --
+    * case_number : VARCHAR(20) <<UNIQUE>>
+    * citizen_id : UUID <<FK>>
+    * category_id : UUID <<FK>>
+    * institution_id : UUID <<FK>>
+    ~ assigned_user_id : UUID <<FK>>
+    * status : ENUM
+    * priority : ENUM
+    * title : VARCHAR(300)
+    * description : TEXT
+    ~ location_address : VARCHAR(500)
+    ~ location_lat : DECIMAL(10,8)
+    ~ location_lng : DECIMAL(11,8)
+    * channel : ENUM
+    ~ source_reference : VARCHAR(200)
+    * sla_deadline : TIMESTAMPTZ
+    ~ resolved_at : TIMESTAMPTZ
+    ~ closed_at : TIMESTAMPTZ
+    ~ satisfaction_score : SMALLINT
+    * created_at : TIMESTAMPTZ
+    * updated_at : TIMESTAMPTZ
+}
+
+' ============================================================
+' ENTIDAD: CaseEvent
+' ============================================================
+entity "**CaseEvent**\n<size:9>(flujo de atención)</size>" as CaseEvent {
+    * event_id : UUID <<PK>>
+    --
+    * case_id : UUID <<FK>>
+    * event_type : ENUM
+    ~ from_status : VARCHAR(50)
+    ~ to_status : VARCHAR(50)
+    ~ from_user_id : UUID <<FK>>
+    ~ comment : TEXT
+    * is_public : BOOLEAN
+    ~ metadata : JSONB
+    * created_at : TIMESTAMPTZ <<IMMUTABLE>>
+}
+
+' ============================================================
+' ENTIDAD: Notification
+' ============================================================
+entity "**Notification**\n<size:9>(notificación)</size>" as Notification {
+    * notification_id : UUID <<PK>>
+    --
+    * citizen_id : UUID <<FK>>
+    ~ case_id : UUID <<FK>>
+    * channel : ENUM
+    * status : ENUM
+    ~ subject : VARCHAR(300)
+    * body : TEXT
+    ~ external_id : VARCHAR(200)
+    ~ sent_at : TIMESTAMPTZ
+    ~ delivered_at : TIMESTAMPTZ
+    * retry_count : SMALLINT
+    * created_at : TIMESTAMPTZ
+}
+
+' ============================================================
+' ENTIDAD: Attachment
+' ============================================================
+entity "**Attachment**\n<size:9>(adjunto)</size>" as Attachment {
+    * attachment_id : UUID <<PK>>
+    --
+    * case_id : UUID <<FK>>
+    ~ uploaded_by_citizen_id : UUID <<FK>>
+    ~ uploaded_by_user_id : UUID <<FK>>
+    * file_name : VARCHAR(255)
+    * file_type : VARCHAR(100)
+    * file_size_bytes : BIGINT
+    * storage_path : VARCHAR(1000)
+    * is_virus_scanned : BOOLEAN
+    ~ scan_result : VARCHAR(50)
+    * created_at : TIMESTAMPTZ
+}
+
+' ============================================================
+' ENTIDAD: AuditLog
+' ============================================================
+entity "**AuditLog**\n<size:9>(auditoría)</size>" as AuditLog {
+    * audit_id : UUID <<PK>>
+    --
+    * entity_type : VARCHAR(100)
+    * entity_id : UUID
+    * action : ENUM
+    * actor_type : ENUM
+    * actor_id : UUID
+    * ip_address : INET
+    ~ user_agent : TEXT
+    ~ institution_id : UUID <<FK>>
+    ~ before_state : JSONB
+    ~ after_state : JSONB
+    ~ metadata : JSONB
+    * created_at : TIMESTAMPTZ <<IMMUTABLE>>
+}
+
+' ============================================================
+' RELACIONES
+' ============================================================
+
+' Citizen → Case: Un ciudadano puede tener muchos casos
+Citizen ||--o{ Case : "reporta >"
+
+' Case → Institution: Un caso pertenece a una institución
+Institution ||--o{ Case : "< gestiona"
+
+' Institution → User: Una institución tiene muchos usuarios
+Institution ||--o{ User : "< emplea"
+
+' Case → ServiceCategory: Un caso tiene una categoría
+ServiceCategory ||--o{ Case : "< clasifica"
+
+' Case → User: Un caso puede estar asignado a un usuario
+User |o--o{ Case : "< atiende"
+
+' Case → CaseEvent: Un caso tiene muchos eventos (append-only)
+Case ||--o{ CaseEvent : "< registra eventos"
+
+' User → CaseEvent: Un usuario puede generar muchos eventos
+User |o--o{ CaseEvent : "< genera"
+
+' Citizen → Notification: Un ciudadano recibe muchas notificaciones
+Citizen ||--o{ Notification : "< recibe"
+
+' Case → Notification: Un caso genera muchas notificaciones
+Case ||--o{ Notification : "< genera"
+
+' Case → Attachment: Un caso tiene muchos adjuntos
+Case ||--o{ Attachment : "< contiene"
+
+' Institution → SlaPolicy: Relación con política SLA
+Institution |o--o{ SlaPolicy : "< configura"
+
+' ServiceCategory → SlaPolicy: Una categoría puede tener una SLA
+ServiceCategory |o--o{ SlaPolicy : "< aplica"
+
+' Jerarquías (auto-relación)
+Institution ||--o{ Institution : "< tiene sub-institución"
+ServiceCategory ||--o{ ServiceCategory : "< tiene sub-categoría"
+
+' ============================================================
+' NOTAS
+' ============================================================
+
+note right of Citizen
+    <b>PII - Datos sensibles</b>
+    national_id, email, phone_number
+    cifrados con AES-256
+    Retención: 5 años
+end note
+
+note right of Case
+    <b>case_number</b> es el identificador
+    visible externamente
+    Formato: C360-YYYY-NNNNNN
+end note
+
+note bottom of CaseEvent
+    <b>APPEND-ONLY</b>
+    No se permite UPDATE ni DELETE
+    Trazabilidad inmutable del flujo
+end note
+
+note bottom of AuditLog
+    <b>APPEND-ONLY</b>
+    Acceso restringido a roles:
+    admin, auditor
+    Incluye todas las operaciones CRUD
+end note
+
+@enduml

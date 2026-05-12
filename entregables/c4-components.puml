@@ -1,0 +1,137 @@
+@startuml c4-components
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+skinparam backgroundColor #FAFAFA
+LAYOUT_WITH_LEGEND()
+
+title <b>Conecta360 — Diagrama C4 Nivel 3: Componentes del Case Service</b>\n<size:11>Versión 1.0 | 2026-05-11 | Arquitecto de Software: Ariel Montero</size>
+
+' ============================================================
+' CONTENEDORES EXTERNOS (contexto)
+' ============================================================
+Container(api_gateway, "API Gateway", "Kong", "Enruta y autentifica requests")
+Container(kafka, "Apache Kafka", "Kafka 3.x", "Bus de eventos")
+ContainerDb(main_db, "Base de Datos\nPrincipal", "PostgreSQL 16", "Persistencia de casos y eventos")
+ContainerDb(cache, "Caché", "Redis 7", "SLAs, categorías en caché")
+Container(institution_svc, "Institution &\nSLA Service", "Go", "Proporciona reglas de enrutamiento y SLAs")
+Container(auth_svc, "Auth Service", "Go", "Valida JWT y claims de tenant")
+
+' ============================================================
+' CASE SERVICE — COMPONENTES INTERNOS
+' ============================================================
+Container_Boundary(case_service, "Case Service (Go / REST + gRPC)") {
+
+    ' ─── CAPA HTTP ────────────────────────────────────────────
+    Component(http_router, "HTTP Router\n& Middleware", "Go / Chi Router", "Enruta requests HTTP REST.\nMiddleware: authn, logging, tracing,\nrate-limiting, request-id.")
+
+    Component(case_controller, "Case Controller", "Go", "Maneja endpoints REST:\nPOST /cases\nGET /cases/{id}\nPUT /cases/{id}/status\nGET /cases (list con filtros)")
+
+    ' ─── CAPA DE APLICACIÓN (USE CASES) ──────────────────────
+    Component(create_case_uc, "CreateCase\nUse Case", "Go", "Orquesta la creación de un caso:\n1. Valida datos\n2. Resuelve institución (enrutamiento)\n3. Calcula SLA deadline\n4. Persiste caso\n5. Publica evento case.created")
+
+    Component(update_case_uc, "UpdateCase\nUse Case", "Go", "Actualiza estado del caso.\nValida transiciones de estado válidas.\nPublica evento case.updated.\nEscribe evento en CaseEvent (audit trail).")
+
+    Component(assign_case_uc, "AssignCase\nUse Case", "Go", "Asigna un caso a un funcionario.\nValida que el funcionario pertenece\na la institución responsable.\nRespeta RBAC/ABAC del tenant.")
+
+    Component(query_case_uc, "QueryCase\nUse Case", "Go", "Consulta de casos con filtros,\npaginación por cursor y\naislamiento multi-tenant (RLS).")
+
+    Component(routing_engine, "Routing Engine", "Go", "Determina la institución\nresponsable según categoría.\nConsulta reglas de enrutamiento\ndesde caché o Institution Service.")
+
+    Component(sla_calculator, "SLA Calculator", "Go", "Calcula el deadline de SLA\nbasado en prioridad y categoría.\nConsulta SlaPolicy desde caché.")
+
+    ' ─── CAPA DE DOMINIO ──────────────────────────────────────
+    Component(case_domain, "Case Domain Model", "Go (DDD Entities)", "Entidades: Case, CaseEvent, CaseStatus.\nLógica de negocio: validación de\ntransiciones de estado, invariantes\ndel dominio.")
+
+    Component(state_machine, "Case State Machine", "Go", "Implementa las transiciones válidas\nentre estados del caso:\nreceived → assigned → in_progress\n→ pending_info → resolved → closed")
+
+    ' ─── CAPA DE INFRAESTRUCTURA ──────────────────────────────
+    Component(case_repo, "Case Repository", "Go / pgx v5", "Acceso a datos. Implementa patrón\nRepository. Queries con RLS automático\npor tenant. Transacciones ACID.")
+
+    Component(event_publisher, "Event Publisher\n(Outbox Pattern)", "Go / Kafka", "Garantiza entrega at-least-once.\nEscribe en tabla outbox dentro\nde la misma transacción DB.\nWorker independiente publica a Kafka.")
+
+    Component(cache_client, "Cache Client", "Go / go-redis", "Lee/escribe en Redis.\nTTL configurable por tipo de dato.\nCache-aside para SLAs y categorías.")
+
+    Component(grpc_client_auth, "Auth gRPC Client", "Go / gRPC", "Valida JWT e identidad del tenant\ncontra Auth Service via gRPC.\nCircuit breaker integrado.")
+
+    Component(rest_client_inst, "Institution REST Client", "Go / HTTP", "Obtiene reglas de enrutamiento\ny configuración de SLAs\ndesde Institution Service.")
+
+    Component(metrics_tracer, "Metrics & Tracing", "Go / OpenTelemetry", "Exporta métricas Prometheus.\nDistributed tracing con OTLP.\nDashboard en Grafana/Jaeger.")
+
+}
+
+' ============================================================
+' RELACIONES — ENTRADA
+' ============================================================
+Rel(api_gateway, http_router, "HTTP REST requests\n(POST/GET/PUT /cases)", "HTTPS / JWT")
+Rel(http_router, case_controller, "Dispatch de requests validados", "In-process")
+
+' ============================================================
+' RELACIONES — CONTROLLER → USE CASES
+' ============================================================
+Rel(case_controller, create_case_uc, "Delega creación de caso", "In-process")
+Rel(case_controller, update_case_uc, "Delega actualización de estado", "In-process")
+Rel(case_controller, assign_case_uc, "Delega asignación de caso", "In-process")
+Rel(case_controller, query_case_uc, "Delega consultas de casos", "In-process")
+
+' ============================================================
+' RELACIONES — USE CASES → DOMINIO
+' ============================================================
+Rel(create_case_uc, case_domain, "Crea entidad Case", "In-process")
+Rel(create_case_uc, routing_engine, "Resuelve institución responsable", "In-process")
+Rel(create_case_uc, sla_calculator, "Calcula SLA deadline", "In-process")
+Rel(update_case_uc, state_machine, "Valida transición de estado", "In-process")
+Rel(update_case_uc, case_domain, "Crea CaseEvent (historial)", "In-process")
+
+' ============================================================
+' RELACIONES — USE CASES → INFRAESTRUCTURA
+' ============================================================
+Rel(create_case_uc, case_repo, "Persiste Case en DB", "In-process")
+Rel(create_case_uc, event_publisher, "Publica case.created", "In-process")
+Rel(update_case_uc, case_repo, "Actualiza Case + CaseEvent", "In-process")
+Rel(update_case_uc, event_publisher, "Publica case.updated", "In-process")
+Rel(assign_case_uc, case_repo, "Actualiza assigned_user_id", "In-process")
+Rel(assign_case_uc, event_publisher, "Publica case.assigned", "In-process")
+Rel(query_case_uc, case_repo, "Consulta con RLS multi-tenant", "In-process")
+
+Rel(routing_engine, cache_client, "Busca reglas en caché", "In-process")
+Rel(routing_engine, rest_client_inst, "Consulta reglas si no hay caché", "In-process")
+Rel(sla_calculator, cache_client, "Busca SlaPolicy en caché", "In-process")
+
+Rel(http_router, grpc_client_auth, "Valida JWT en middleware", "In-process")
+
+' ============================================================
+' RELACIONES — INFRAESTRUCTURA → EXTERNOS
+' ============================================================
+Rel(case_repo, main_db, "SQL / pgx driver\nRow-Level Security activo", "TCP / TLS")
+Rel(event_publisher, main_db, "Escribe en tabla outbox\ndentro de la transacción", "TCP / TLS")
+Rel(event_publisher, kafka, "Publica eventos al topic\n'case.events'", "Kafka Producer / TLS")
+Rel(cache_client, cache, "GET/SET con TTL", "Redis Protocol / TLS")
+Rel(grpc_client_auth, auth_svc, "Validate(token) -> claims", "gRPC / mTLS")
+Rel(rest_client_inst, institution_svc, "GET /routing-rules/{category_id}", "HTTPS / REST")
+Rel(metrics_tracer, kafka, "Trazas de eventos asíncronos", "OTLP / internal")
+
+' ============================================================
+' NOTAS DE SEGURIDAD
+' ============================================================
+note right of grpc_client_auth
+    <b>Seguridad:</b>
+    - mTLS entre servicios internos
+    - JWT validado en CADA request
+    - Claims: tenant_id, user_id, role
+end note
+
+note right of case_repo
+    <b>Multi-tenancy:</b>
+    - Row-Level Security (RLS) en PostgreSQL
+    - SET LOCAL app.current_tenant = '{id}'
+    - Queries automáticamente filtrados
+end note
+
+note right of event_publisher
+    <b>Outbox Pattern:</b>
+    - Garantía at-least-once
+    - Sin pérdida de eventos en crash
+    - Idempotency key en consumidores
+end note
+
+@enduml

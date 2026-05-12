@@ -1,0 +1,75 @@
+@startuml c4-context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+skinparam backgroundColor #FAFAFA
+LAYOUT_WITH_LEGEND()
+
+title <b>Conecta360 — Diagrama C4 Nivel 1: Contexto del Sistema</b>\n<size:11>Versión 1.0 | 2026-05-11 | Arquitecto de Software: Ariel Montero</size>
+
+' ============================================================
+' PERSONAS / ACTORES
+' ============================================================
+Person(citizen, "Ciudadano", "Persona natural que reporta incidencias,\nsolicita servicios y hace seguimiento\nde sus casos desde cualquier canal.")
+
+Person(agent, "Agente / Funcionario", "Empleado gubernamental que gestiona\ncasos asignados, actualiza estados\ny atiende al ciudadano.")
+
+Person(supervisor, "Supervisor Institucional", "Responsable de monitorear el desempeño\nde su equipo, revisar SLAs y\ngénerar reportes de gestión.")
+
+Person(admin, "Administrador del Sistema", "Configura instituciones, categorías,\nSLAs, usuarios y permisos\ndel sistema completo.")
+
+Person(analyst, "Analista / Alcaldía", "Consume dashboards y reportes\nde KPIs para decisiones estratégicas\na nivel gobierno.")
+
+' ============================================================
+' SISTEMA PRINCIPAL
+' ============================================================
+System(conecta360, "Conecta360", "Plataforma digital unificada de\natención ciudadana. Centraliza todos los\ncanales de atención, gestión de casos,\nnotificaciones y analítica de gobierno.")
+
+' ============================================================
+' SISTEMAS EXTERNOS
+' ============================================================
+System_Ext(sso, "SSO Nacional", "Plataforma nacional de autenticación\nciudadana con documento de identidad.\nProtocolo: OpenID Connect / OAuth2")
+
+System_Ext(whatsapp, "WhatsApp Business API", "Canal de atención ciudadana\nvía mensajería de WhatsApp.\nMeta / 360dialog")
+
+System_Ext(social, "Redes Sociales\n(Facebook / Twitter-X)", "Canales de entrada para reportes\nciudadanos publicados en RRSS.\nAPIs oficiales de cada plataforma.")
+
+System_Ext(sms_email, "Proveedor de Mensajería\n(Twilio / SendGrid)", "Servicio externo para envío\nde SMS y correos electrónicos\nde notificación al ciudadano.")
+
+System_Ext(health_sys, "Sistema de Salud\n(MINSA)", "Sistema legado del Ministerio\nde Salud para gestión de\nexpedientes médicos y turnos.")
+
+System_Ext(public_works, "Sistema de Obras Públicas\n(MOP)", "Sistema legado del Ministerio\nde Obras Públicas para gestión\nde mantenimiento vial.")
+
+System_Ext(energy_sys, "Sistema de Energía\n(ANDE)", "Sistema legado de la empresa\nde energía para gestión\nde averías y servicios.")
+
+System_Ext(powerbi, "Power BI / Data Warehouse", "Plataforma de inteligencia de\nnegocio para reportes avanzados\ny análisis de datos gubernamentales.")
+
+System_Ext(push_provider, "Firebase / APNS\n(Push Notifications)", "Servicio de notificaciones push\npara la aplicación móvil\nde Conecta360.")
+
+' ============================================================
+' RELACIONES — CIUDADANO
+' ============================================================
+Rel(citizen, conecta360, "Reporta incidencias, solicita servicios,\nhace seguimiento de casos", "Web / App Móvil / WhatsApp / RRSS / Call Center")
+Rel(citizen, sso, "Se autentica con\ndocumento de identidad", "OpenID Connect")
+
+' ============================================================
+' RELACIONES — FUNCIONARIOS
+' ============================================================
+Rel(agent, conecta360, "Gestiona casos asignados,\nactualiza estados, agrega comentarios", "Web Browser / HTTPS")
+Rel(supervisor, conecta360, "Monitorea KPIs del equipo,\nconfigura SLAs, reasigna casos", "Web Browser / HTTPS")
+Rel(admin, conecta360, "Administra usuarios, instituciones,\ncategorías y configuraciones", "Web Browser / HTTPS")
+Rel(analyst, conecta360, "Consulta dashboards globales\ny reportes estratégicos", "Web Browser / HTTPS")
+
+' ============================================================
+' RELACIONES — SISTEMAS EXTERNOS
+' ============================================================
+Rel(conecta360, sso, "Valida identidad del ciudadano\ny obtiene token de sesión", "HTTPS / OIDC")
+Rel(conecta360, whatsapp, "Recibe reportes ciudadanos\ny envía notificaciones", "HTTPS / WhatsApp Business API")
+Rel(conecta360, social, "Monitorea menciones y\nrecibe reportes sociales", "HTTPS / REST API")
+Rel(conecta360, sms_email, "Envía notificaciones\nSMS y email al ciudadano", "HTTPS / API")
+Rel(conecta360, push_provider, "Envía notificaciones push\na la app móvil", "HTTPS / FCM / APNS")
+Rel(conecta360, health_sys, "Deriva y sincroniza casos\nde salud con MINSA", "HTTPS / REST API / ACL")
+Rel(conecta360, public_works, "Deriva y sincroniza casos\nviales con MOP", "HTTPS / REST API / ACL")
+Rel(conecta360, energy_sys, "Deriva y sincroniza reportes\nde averías con ANDE", "HTTPS / REST API / ACL")
+Rel(conecta360, powerbi, "Exporta datos analíticos\npara reportes avanzados", "HTTPS / OData / ETL")
+
+@enduml
